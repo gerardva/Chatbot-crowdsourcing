@@ -17,10 +17,6 @@ ACCESS_TOKEN = '237870208-sFckbq7hnXDTVhpmgMosxr0jE1aUs3J2Z9sKKXUO'
 ACCESS_TOKEN_SECRET = 'hoSmWLvMhhscPCY6n99qox2P1cdHtXQbz4CTbInQKkk9v'
 # ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET", None)
 
-# Languages to filter tweets by is a list. This will be joined by Twitter
-# to return data mentioning tweets only in the english language.
-LANGUAGES = ['en']
-
 api = Api(CONSUMER_KEY,
           CONSUMER_SECRET,
           ACCESS_TOKEN,
