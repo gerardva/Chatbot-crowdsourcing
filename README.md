@@ -24,3 +24,44 @@ If you run a Unix machine I assume you know how to adapt the above instructions 
 - Execute `git push heroku master` to deploy the chatbot to Heroku. Make sure to keep our own repository up to date. Gerard may also be able to set up automatic publishing with GitHub.
 - You can run the chatbot locally with `heroku local`, but that doesn't do much other than verify it's working.
 - Go to [the Facebook page](https://www.facebook.com/Microwork-Chatbot-1849085282000551) and click 'Message' to chat with our bot. Make sure you are admin of the page, otherwise it will give you the silent treatment.
+
+### Testing locally
+
+To test the chatbot functionality without first deploying to heroku do the following:
+
+- Add a new Environment variable to your machine, with name `PAGE_ACCESS_TOKEN` and as value the token which can be found in Heroku at Settings -> Config vars
+- Run the server locally as described above using the `heroku local` command, this will start the server at localhost:8080
+- Simulate the webhooks with a application like Postman, you can do POST request to localhost:8080 like this:
+
+###### Headers
+
+`Content-Type : application/json`
+
+###### Body
+
+```{
+  "object": "page",
+  "entry": [
+    {
+      "messaging": [
+        {
+          "sender": {
+            "id": "YOUR_FACEBOOK_ID"
+          },
+          "message": {
+            "seq": 7425,
+            "mid": "mid.$cAAaRu-bCUn5hCLcJoFa13HGOx2wQ",
+            "text": "YOUR TEXT"
+          },
+          "timestamp": 1489673240992,
+          "recipient": {
+            "id": "1849085282000551"
+          }
+        }
+      ],
+      "id": "1849085282000551",
+      "time": 1489673241040
+    }
+  ]
+}
+```
