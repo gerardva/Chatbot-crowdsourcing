@@ -15,9 +15,10 @@ from settings import settings
 
 mysqlSettings = settings["mysql"]
 
-mysql_db = MySQLDatabase('ir', host=mysqlSettings["host"], 
-                               user=mysqlSettings["user"],
-                               passwd=mysqlSettings["passwd"])
+mysql_db = MySQLDatabase(host=mysqlSettings["host"],
+                         user=mysqlSettings["user"],
+                         passwd=mysqlSettings["passwd"],
+                         database=mysqlSettings["db"])
 
 
 class BaseModel(Model):
@@ -55,7 +56,7 @@ class DataRowAnswer(BaseModel):
     dataRowId = ForeignKeyField(DataRow, related_name="answers")
 
 
-mysql_db.create_tables([DataRow, DataRowAnswer, Question, Task, User], safe=True)
+mysql_db.create_tables([User, Task, Question, DataRow, DataRowAnswer], safe=True)
 
 
 class PeeweeConnectionMiddleware(object):
