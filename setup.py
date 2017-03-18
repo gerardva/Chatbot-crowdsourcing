@@ -20,4 +20,8 @@ if __name__ == '__main__':
     app = falcon.API(middleware=[PeeweeConnectionMiddleware()])
     add_api_routes(app)
     add_chatbot_routes(app)
-    serve(app, listen='*:' + os.environ['PORT'])
+    if 'PORT' in os.environ:
+        port = os.environ['PORT']
+    else:
+        port = '80'
+    serve(app, listen='*:' + port)
