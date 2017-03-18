@@ -1,17 +1,16 @@
-import falcon
 import json
-from waitress import serve
+
 from peewee import *
 # from database import db
-from apifuncs.api import QuoteResource
+
 # from apifuncs.worker.GetRandomTask import GetRandomTaskResource
 # from apifuncs.worker.SubmitAnswer import SubmitAnswerResource
 # from apifuncs.worker.ListTasks import ListTasksResource
 # from apifuncs.worker.CreateNewUser import CreateNewUserResource
 # from apifuncs.requester.InputTask import InputTaskResource
 # from apifuncs.requester.GetTaskResults import GetTaskResultsResource
-
-from settings import settings
+from api.code.apifuncs.api import QuoteResource
+from api.code.settings import settings
 
 mysqlSettings = settings["mysql"]
 
@@ -19,6 +18,16 @@ mysql_db = MySQLDatabase(host=mysqlSettings["host"],
                          user=mysqlSettings["user"],
                          passwd=mysqlSettings["passwd"],
                          database=mysqlSettings["db"])
+
+
+def add_api_routes(app):
+    app.add_route('/quote', QuoteResource())
+    app.add_route('/worker/getRandomJob', GetRandomJobResource())
+    app.add_route('/worker/submitAnswer', SubmitAnswerResource())
+    app.add_route('/worker/listTasks', ListTasksResource())
+    app.add_route('/worker/createNewUser', CreateNewUserResource())
+    app.add_route('/requester/inputTask', InputTaskResource())
+    app.add_route('/requester/getTaskResults', GetTaskResultsResource())
 
 
 class BaseModel(Model):
@@ -59,38 +68,27 @@ class DataRowAnswer(BaseModel):
 mysql_db.create_tables([User, Task, Question, DataRow, DataRowAnswer], safe=True)
 
 
-class PeeweeConnectionMiddleware(object):
-    def process_request(self, req, resp):
-        mysql_db.connect()
-
-    def process_response(self, req, resp, resource):
-        if not mysql_db.is_closed():
-            mysql_db.close()
-
-api = falcon.API(middleware=[PeeweeConnectionMiddleware()])
-
-
 class ListTasksResource:
     def on_get(self, req, resp):
         """Handles GET requests"""
-        
+
         result = {
             'tasks': []
         }
-        
+
         for task in Task.select():
-            result['tasks'].append(task.taskId) 
+            result['tasks'].append(task.taskId)
 
         resp.body = json.dumps(result)
 
 
 class SubmitAnswerResource:
     def on_post(self, req, resp):
-        req_as_json = json.loads(req.stream.read())
+        req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
         answer = DataRowAnswer.create(answer=req_as_json['answer'],
-                             userId=req_as_json['userId'],
-                             dataRowId=req_as_json['dataRowId'])
+                                      userId=req_as_json['userId'],
+                                      dataRowId=req_as_json['dataRowId'])
 
         answer.save()
 
@@ -120,7 +118,7 @@ class CreateNewUserResource:
 
 class InputTaskResource:
     def on_post(self, req, resp):
-        task_as_json = json.loads(req.stream.read())
+        task_as_json = json.loads(req.stream.read().decode('utf-8'))
         task = Task.create(userId=task_as_json['userId'])
         task.save()
 
@@ -137,22 +135,10 @@ class InputTaskResource:
 
 class GetTaskResultsResource:
     def on_post(self, req, resp):
-        req_as_json = json.loads(req.stream.read())
+        req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
         results = DataRowAnswer.select().join(DataRow).where(DataRow.taskId == req_as_json['taskId'])
 
         resp.body = json.dumps({
             'results': json.load(results)
         })
-
-
-api.add_route('/quote', QuoteResource())
-api.add_route('/worker/getRandomJob', GetRandomJobResource())
-api.add_route('/worker/submitAnswer', SubmitAnswerResource())
-api.add_route('/worker/listTasks', ListTasksResource())
-api.add_route('/worker/createNewUser', CreateNewUserResource())
-api.add_route('/requester/inputTask', InputTaskResource())
-api.add_route('/requester/getTaskResults', GetTaskResultsResource())
-
-
-serve(api)
