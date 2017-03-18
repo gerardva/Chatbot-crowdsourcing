@@ -1,3 +1,5 @@
+import os
+
 import falcon
 from waitress import serve
 
@@ -18,4 +20,4 @@ if __name__ == '__main__':
     app = falcon.API(middleware=[PeeweeConnectionMiddleware()])
     add_api_routes(app)
     add_chatbot_routes(app)
-    serve(app, listen='*:80')
+    serve(app, listen='*:' + os.environ['PORT'])
