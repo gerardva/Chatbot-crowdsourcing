@@ -15,16 +15,18 @@ class ChatbotResource:
         # when the endpoint is registered as a webhook, it must echo back
         # the 'hub.challenge' value it receives in the query arguments
         if req.get_param("hub.mode") == "subscribe" and req.get_param("hub.challenge"):
-            if not req.get_param("hub.verify_token") == os.environ["VERIFY_TOKEN"]:
-                return "Verification token mismatch", 403
-            return req.args["hub.challenge"], 200
-
-        resp.body = "Hello World"
+            if req.get_param("hub.verify_token") == os.environ["VERIFY_TOKEN"]:
+                resp.body = req.args["hub.challenge"]
+            else:
+                resp.status = falcon.HTTP_403
+                resp.body = "Verification token mismatch"
+        else:
+            resp.body = "Hello World"
 
     def on_post(self, req, resp):
         # endpoint for processing incoming messaging events
 
-        data = req.get_json()
+        data = json.loads(req.stream.read().decode('utf-8'))
         log(data)  # you may not want to log every incoming message in production, but it's good for testing
 
         if data["object"] == "page":
