@@ -106,8 +106,8 @@ class GetRandomJobResource:
         questions = Question.select().join(Task).where(Task.taskId == dataRow.taskId).get()
 
         resp.body = json.dumps({
-            'dataRow': json.dumps(model_to_dict(dataRow)),
-            'questions': json.dumps(model_to_dict(questions))
+            'dataRow': model_to_dict(dataRow),
+            'questions': [model_to_dict(questions)]
         })
 
 
