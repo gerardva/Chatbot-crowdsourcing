@@ -9,7 +9,7 @@ class ApiServerRunningTestCase(unittest.TestCase):
     def runTest(self):
         port = settings['ports']['waitress']
         if port is None:
-            port = '8080'  # try default
+            port = '5000'  # try default
 
         result = request.urlopen('http://127.0.0.1:' + port + '/quote').read()
         self.assertIsInstance(result, str, "api server might be off")
