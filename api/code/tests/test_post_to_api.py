@@ -3,8 +3,12 @@
 import requests
 import json
 
-r = requests.post('http://localhost:8080/requester/inputTask', data=json.dumps({
-    'userId': 1,
+r = requests.get('http://localhost:5000/worker/createNewUser')
+
+print(r.text)
+
+r = requests.post('http://localhost:5000/requester/inputTask', data=json.dumps({
+    'userId': 2,
     'dataRows': [
         {'pictureUrl': 'someUrl'}
     ],
@@ -14,11 +18,11 @@ r = requests.post('http://localhost:8080/requester/inputTask', data=json.dumps({
     }
 }))
 
-print(r.text)
+# print(r.text)
 
-r = requests.post('http://localhost:8080/worker/submitAnswer', data=json.dumps({
-    'userId': 1,
-    'dataRowId': 1,
+r = requests.post('http://localhost:5000/worker/submitAnswer', data=json.dumps({
+    'userId': 2,
+    'dataRowId': 2,
     'answer': 'this is truly a legit answer'
 }))
 

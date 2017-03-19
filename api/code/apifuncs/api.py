@@ -1,6 +1,7 @@
 # sample.py
 import json
- 
+
+
 class QuoteResource:
     def on_get(self, req, resp):
         """Handles GET requests"""
