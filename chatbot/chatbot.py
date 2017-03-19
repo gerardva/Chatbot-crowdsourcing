@@ -14,14 +14,15 @@ class ChatbotResource:
     def on_get(self, req, resp):
         # when the endpoint is registered as a webhook, it must echo back
         # the 'hub.challenge' value it receives in the query arguments
+        resp.content_type = "text/html"
         if req.get_param("hub.mode") == "subscribe" and req.get_param("hub.challenge"):
             if req.get_param("hub.verify_token") == os.environ["VERIFY_TOKEN"]:
-                resp.body = req.args["hub.challenge"]
+                resp.body = req.get_param("hub.challenge")
             else:
                 resp.status = falcon.HTTP_403
                 resp.body = "Verification token mismatch"
         else:
-            resp.body = "Hello World"
+            resp.body = json.dumps("Hello World")
 
     def on_post(self, req, resp):
         # endpoint for processing incoming messaging events
@@ -52,6 +53,7 @@ class ChatbotResource:
                         pass
 
         resp.status = falcon.HTTP_200
+        resp.content_type = "text/html"
         resp.body = "ok"
 
 
