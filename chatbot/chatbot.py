@@ -7,7 +7,7 @@ import requests
 
 
 def add_chatbot_routes(app):
-    app.add_route('/', ChatbotResource())
+    app.add_route('/chatbot', ChatbotResource())
 
 
 class ChatbotResource:
