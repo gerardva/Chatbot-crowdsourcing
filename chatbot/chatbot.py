@@ -22,7 +22,7 @@ class ChatbotResource:
                 resp.status = falcon.HTTP_403
                 resp.body = "Verification token mismatch"
         else:
-            resp.body = json.dumps("Hello World")
+            resp.body = "Hello World"
 
     def on_post(self, req, resp):
         # endpoint for processing incoming messaging events
