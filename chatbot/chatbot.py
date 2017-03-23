@@ -11,6 +11,7 @@ def add_chatbot_routes(app):
 
 api_url = "https://fathomless-cove-38602.herokuapp.com" # no trailing slash
 user_states = {}
+greetings = {"hi", "hey", "hello", "greetings"}
 
 class ChatbotResource:
     def on_get(self, req, resp):
@@ -64,7 +65,20 @@ def handle_message(messaging_event):
         send_message(sender_id, "Error, self-destructing in 5 seconds")
         return
 
-    if message_text == "Give me a task":
+    if str.lower(message_text) in greetings:
+        quick_replies = [
+          {
+            "content_type":"location"
+          },
+          {
+            "content_type":"text",
+            "title":"Give me a task",
+            "payload":"task"
+          }
+        ]
+        send_message(sender_id, "What's next? Send your location to get even cooler tasks.", quick_replies)
+
+    elif message_text == "Give me a task":
         r = requests.get("{base_url}/worker/getRandomJob".format(base_url=api_url))
         if r.status_code != 200:
             log(r.status_code)
@@ -116,9 +130,8 @@ def handle_message(messaging_event):
         send_message(sender_id, "I did not understand your message")
 
 
-def send_message(recipient_id, message_text):
+def send_message(recipient_id, message_text, quick_replies=None):
     log("sending message to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
-
     params = {
         "access_token": os.environ["PAGE_ACCESS_TOKEN"]
     }
@@ -130,10 +143,11 @@ def send_message(recipient_id, message_text):
             "id": recipient_id
         },
         "message": {
-            "text": message_text
+            "text": message_text,
+            "quick_replies": quick_replies
         }
     })
-
+    log("Sending data: {data}".format(data=data))
     r = requests.post("https://graph.facebook.com/v2.8/me/messages", params=params, headers=headers, data=data)
     if r.status_code != 200:
         log(r.status_code)
