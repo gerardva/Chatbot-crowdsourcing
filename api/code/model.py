@@ -20,6 +20,7 @@ class Task(BaseModel):
 
 class Question(BaseModel):
     id = PrimaryKeyField()
+    # TODO: change key to IntegerField
     key = CharField()
     question = TextField()
     taskId = ForeignKeyField(Task)
