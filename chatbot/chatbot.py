@@ -93,12 +93,14 @@ def handle_message(messaging_event):
             "payload": "task"
           }
         ]
-        send_message(sender_id, "What's next? Send your location to get even cooler tasks.", quick_replies)
+        send_message(sender_id, "What's up? I can give you a task, but if you send your location "
+                                "I can give you even cooler tasks.", quick_replies)
 
     elif message_text == "Give me a task" and user_states[sender_id]["state"] == "given_task":
         send_message(sender_id, "You already have a task")
 
-    elif (coordinates or quick_reply_payload == "task" or message_text == "Give me a task") and user_states[sender_id]["state"] == "idle":
+    elif (coordinates or quick_reply_payload == "task" or message_text == "Give me a task")\
+            and user_states[sender_id]["state"] == "idle":
         r = requests.get("{base_url}/worker/getRandomJob".format(base_url=api_url))
         if r.status_code != 200:
             log(r.status_code)
@@ -119,17 +121,13 @@ def handle_message(messaging_event):
         send_image(sender_id, data_json["pictureUrl"])
         send_message(sender_id, question["question"])
 
-    elif message_text.startswith("Answer: "):
-        if user_states[sender_id] is None or user_states[sender_id]["state"] != "given_task":
-            send_message(sender_id, "You do not have a task assigned")
-            return
-
+    elif user_states[sender_id] is not None and user_states[sender_id]["state"] == "given_task":
         task = user_states[sender_id]["task_id"]
         question_id = user_states[sender_id]["question_id"]
         content_id = user_states[sender_id]["content_id"]
 
         data = {
-            "answer": message_text[8:],
+            "answer": message_text,
             "userId": 2,  # TODO: Fix registration
             "questionId": user_states[sender_id]["question_id"],
             "contentId": user_states[sender_id]["content_id"]  # TODO: Why is contentId needed?
