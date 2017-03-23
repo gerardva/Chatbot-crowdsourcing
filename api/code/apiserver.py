@@ -11,7 +11,7 @@ from peewee import *
 # from apifuncs.requester.GetTaskResults import GetTaskResultsResource
 from api.code.apifuncs.api import QuoteResource
 from api.code.settings import settings
-from playhouse.shortcuts import model_to_dict
+#from playhouse.shortcuts import model_to_dict
 
 mysqlSettings = settings["mysql"]
 
@@ -106,11 +106,23 @@ class GetRandomJobResource:
     def on_get(self, req, resp):
         content = Content.select().order_by(fn.Rand()).first()
 
-        questions = Question.select().join(Task).where(Task.taskId == content.taskId).get()
+        questions = Question.select().join(Task).where(Task.taskId == content.taskId)
+
+        questions_json = []
+        for question in questions:
+            questions_json.append({
+                'questionId': question.questionId,
+                'key': question.key,
+                'question': question.question,
+            })
+
+        task = content.taskId
 
         resp.body = json.dumps({
-            'content': model_to_dict(content),
-            'questions': [model_to_dict(questions)]
+            'taskId': task.taskId,
+            'contentId': content.contentId,
+            'content': content.dataJSON,
+            'questions': questions_json
         })
 
 

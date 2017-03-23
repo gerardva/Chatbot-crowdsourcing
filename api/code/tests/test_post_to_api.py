@@ -26,7 +26,7 @@ r = requests.get('http://localhost:80/worker/getRandomJob')
 
 print(r.text)
 r_as_json = json.loads(r.text)
-contentId = r_as_json['content']['contentId']
+contentId = r_as_json['contentId']
 questionId = r_as_json['questions'][0]['questionId']
 
 
