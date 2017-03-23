@@ -4,9 +4,5 @@
       "user":"root",
       "passwd":"Smurfs23",
       "db":"ir"
-   },
-   "ports": {
-		"waitress": "8080",
-		"mysql": "8081"
    }
 }
