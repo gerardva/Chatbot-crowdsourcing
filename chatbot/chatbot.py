@@ -10,6 +10,12 @@ def add_chatbot_routes(app):
     app.add_route('/chatbot', ChatbotResource())
 
 api_url = "https://fathomless-cove-38602.herokuapp.com" # no trailing slash
+api_methods = {
+    'GET': requests.get,
+    'POST': requests.post,
+    'PUT': requests.put
+}
+
 user_states = {}
 greetings = {"hi", "hey", "hello", "greetings"}
 
@@ -80,10 +86,7 @@ def handle_message(messaging_event):
         if attachment_type == "image":
             pass  # TODO: handle image
 
-    #if not message_text:
-    #    send_message(sender_id, "Error, self-destructing in 5 seconds")
-    #    return
-
+    # Handle initial message
     if str.lower(message_text) in greetings and user_states[sender_id]["state"] == "idle":
         quick_replies = [{
             "content_type": "location"
@@ -99,14 +102,15 @@ def handle_message(messaging_event):
     elif message_text == "Give me a task" and user_states[sender_id]["state"] == "given_task":
         send_message(sender_id, "You already have a task")
 
+    # Handle giving task
     elif (coordinates or quick_reply_payload == "task" or message_text == "Give me a task")\
             and user_states[sender_id]["state"] == "idle":
-        r = requests.get("{base_url}/worker/tasks?order=random&limit=1".format(base_url=api_url))
-        if r.status_code != 200:
-            log(r.status_code)
-            log(r.text)
 
-        task = r.json()[0]  # Pick the only question in the list
+        task = get_random_task()
+        if not task:
+            send_message(sender_id, "Sorry, something went wrong when retrieving your task")
+            return
+
         question = task["questions"][0]  # TODO: Pick question intelligently
         data_json = json.loads(task["content"])[0]  # TODO: When do we have multiple content?
 
@@ -121,23 +125,17 @@ def handle_message(messaging_event):
         send_image(sender_id, data_json["pictureUrl"])
         send_message(sender_id, question["question"])
 
+    # Handle submitting answer
     elif user_states[sender_id] is not None and user_states[sender_id]["state"] == "given_task":
-        task = user_states[sender_id]["task_id"]
+        user_id = 2  # TODO: Fix registration
         question_id = user_states[sender_id]["question_id"]
         content_id = user_states[sender_id]["content_id"]
 
-        data = {
-            "answer": message_text,
-            "userId": 2,  # TODO: Fix registration
-            "questionId": user_states[sender_id]["question_id"],
-            "contentId": user_states[sender_id]["content_id"]  # TODO: Why is contentId needed?
-        }
-        r = requests.post("{base_url}/worker/answers".format(base_url=api_url),
-                          json=data)
+        res = post_answer(message_text, user_id, question_id, content_id)
 
-        if r.status_code != 200:
-            log(r.status_code)
-            log(r.text)
+        if not res:
+            send_message(sender_id, "Sorry, something went wrong when submitting your answer")
+            return
 
         user_states[sender_id] = None
 
@@ -157,6 +155,7 @@ def handle_message(messaging_event):
         ]
         send_message(sender_id, "What's next? Send your location to get even cooler tasks.", quick_replies)
 
+    # Handle default case
     else:
         send_message(sender_id, "I did not understand your message")
 
@@ -214,6 +213,44 @@ def send_image(recipient_id, image_url):
         log(r.status_code)
         log(r.text)
 
+def call_api(method, url, data=None):
+    r_method = api_methods.get(method.upper())
+    if r_method is None:
+        log("Unknown method {method} for API call".format(method=method))
+        return False
+
+    call_url = api_url + url
+    r = r_method(call_url, json=data)
+
+    if r.status_code != 200:
+        log("{status_code} encountered when calling {url}".format(status_code=r.status_code, url=call_url))
+        log(r.text)
+        return False
+
+    return r.json()
+
+def get_random_task():
+    res = call_api("GET", "/worker/tasks?order=random&limit=1")
+
+    if not res:
+        return False
+
+    task = res[0]  # Pick the only question in the list
+    return task
+
+def post_answer(answer, user_id, question_id, content_id):
+    data = {
+        "answer": answer,
+        "userId": user_id,
+        "questionId": question_id,
+        "contentId": content_id  # TODO: Why is contentId needed?
+    }
+
+    res = call_api("POST", "/worker/answers", data)
+    if not res:
+        return False
+
+    return True
 
 def log(message):  # simple wrapper for logging to stdout on heroku
     print(str(message))
