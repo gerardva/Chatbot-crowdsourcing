@@ -1,24 +1,7 @@
 import json
 
-from peewee import *
-# from database import db
-
-# from apifuncs.worker.GetRandomTask import GetRandomTaskResource
-# from apifuncs.worker.SubmitAnswer import SubmitAnswerResource
-# from apifuncs.worker.ListTasks import ListTasksResource
-# from apifuncs.worker.CreateNewUser import CreateNewUserResource
-# from apifuncs.requester.InputTask import InputTaskResource
-# from apifuncs.requester.GetTaskResults import GetTaskResultsResource
 from api.code.apifuncs.api import QuoteResource
-from api.code.settings import settings
-#from playhouse.shortcuts import model_to_dict
-
-mysqlSettings = settings["mysql"]
-
-mysql_db = MySQLDatabase(host=mysqlSettings["host"],
-                         user=mysqlSettings["user"],
-                         passwd=mysqlSettings["passwd"],
-                         database=mysqlSettings["db"])
+from api.code.model import *
 
 
 def add_api_routes(app):
@@ -29,42 +12,6 @@ def add_api_routes(app):
     app.add_route('/worker/createNewUser', CreateNewUserResource())
     app.add_route('/requester/inputTask', InputTaskResource())
     app.add_route('/requester/getTaskResults', GetTaskResultsResource())
-
-
-class BaseModel(Model):
-    class Meta:
-        database = mysql_db
-
-
-class User(BaseModel):
-    userId = PrimaryKeyField()
-    score = FloatField(default=0.0)
-
-
-class Task(BaseModel):
-    taskId = PrimaryKeyField()
-    userId = ForeignKeyField(User, related_name="tasks_created")
-
-
-class Question(BaseModel):
-    questionId = PrimaryKeyField()
-    key = CharField()
-    question = TextField()
-    taskId = ForeignKeyField(Task)
-
-
-class Content(BaseModel):
-    contentId = PrimaryKeyField()
-    dataJSON = TextField()
-    taskId = ForeignKeyField(Task)
-
-
-class Answer(BaseModel):
-    dataRowAnswerId = PrimaryKeyField()
-    answer = TextField()
-    userId = ForeignKeyField(User)
-    contentId = ForeignKeyField(Content)
-    questionId = ForeignKeyField(Question)
 
 
 mysql_db.create_tables([User, Task, Question, Content, Answer], safe=True)
@@ -99,7 +46,6 @@ class SubmitAnswerResource:
             'success': True,
             'reward': 100000000000
         })
-
 
 
 class GetRandomJobResource:
