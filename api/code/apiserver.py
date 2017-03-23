@@ -42,7 +42,6 @@ class WorkerTasksResource:
         contents = Content.select()
         if order == "random":
             contents.order_by(fn.Rand())
-            print("random!")
         if limit:
             try:
                 limit_int = int(limit)
