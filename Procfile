@@ -1,1 +1,1 @@
-web: python3 setup.py
+web: python setup.py
