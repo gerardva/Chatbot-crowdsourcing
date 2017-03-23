@@ -20,14 +20,14 @@ class ApiIntegrationTest(TestCase):
             self.post_answer()
 
     def create_new_user(self):
-        r = requests.get('http://localhost:5000/worker/createNewUser')
+        r = requests.get('http://localhost:5000/worker/users')
 
         print(r.text)
         r_as_json = json.loads(r.text)
         self.userId = r_as_json['userId']
 
     def post_task(self):
-        r = requests.post('http://localhost:5000/requester/inputTask', data=json.dumps({
+        r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
             'userId': self.userId,
             'data': [
                 {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}
@@ -41,15 +41,18 @@ class ApiIntegrationTest(TestCase):
         print(r.text)
 
     def get_task(self):
-        r = requests.get('http://localhost:5000/worker/getRandomJob')
+        r = requests.get('http://localhost:5000/worker/tasks?order=random&limit=1')
 
         print(r.text)
-        r_as_json = json.loads(r.text)
+        r_as_json = json.loads(r.text)[0]
         self.contentId = r_as_json['contentId']
         self.questionId = r_as_json['questions'][0]['questionId']
 
     def post_answer(self):
-        r = requests.post('http://localhost:5000/worker/submitAnswer', data=json.dumps({
+        print(self.userId)
+        print(self.contentId)
+        print(self.questionId)
+        r = requests.post('http://localhost:5000/worker/answers', data=json.dumps({
             'userId': self.userId,
             'contentId': self.contentId,
             'questionId': self.questionId,
