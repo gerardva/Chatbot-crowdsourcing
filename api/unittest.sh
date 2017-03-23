@@ -1,2 +1,1 @@
-nosetests
-read
+python3 -m unittest discover

@@ -1,24 +1,7 @@
 import json
 
-from peewee import *
-# from database import db
-
-# from apifuncs.worker.GetRandomTask import GetRandomTaskResource
-# from apifuncs.worker.SubmitAnswer import SubmitAnswerResource
-# from apifuncs.worker.ListTasks import ListTasksResource
-# from apifuncs.worker.CreateNewUser import CreateNewUserResource
-# from apifuncs.requester.InputTask import InputTaskResource
-# from apifuncs.requester.GetTaskResults import GetTaskResultsResource
 from api.code.apifuncs.api import QuoteResource
-from api.code.settings import settings
-from playhouse.shortcuts import model_to_dict
-
-mysqlSettings = settings["mysql"]
-
-mysql_db = MySQLDatabase(host=mysqlSettings["host"],
-                         user=mysqlSettings["user"],
-                         passwd=mysqlSettings["passwd"],
-                         database=mysqlSettings["db"])
+from api.code.model import *
 
 
 def add_api_routes(app):
@@ -31,42 +14,7 @@ def add_api_routes(app):
     app.add_route('/requester/getTaskResults', GetTaskResultsResource())
 
 
-class BaseModel(Model):
-    class Meta:
-        database = mysql_db
-
-
-class User(BaseModel):
-    userId = PrimaryKeyField()
-    score = FloatField(default=0.0)
-
-
-class Task(BaseModel):
-    taskId = PrimaryKeyField()
-    userId = ForeignKeyField(User, related_name="tasks_created")
-
-
-class Question(BaseModel):
-    questionId = PrimaryKeyField()
-    key = CharField()
-    question = TextField()
-    taskId = ForeignKeyField(Task)
-
-
-class DataRow(BaseModel):
-    dataRowId = PrimaryKeyField()
-    dataJSON = TextField()
-    taskId = ForeignKeyField(Task)
-
-
-class DataRowAnswer(BaseModel):
-    dataRowAnswerId = PrimaryKeyField()
-    answer = TextField()
-    userId = ForeignKeyField(User)
-    dataRowId = ForeignKeyField(DataRow, related_name="answers")
-
-
-mysql_db.create_tables([User, Task, Question, DataRow, DataRowAnswer], safe=True)
+mysql_db.create_tables([User, Task, Question, Content, Answer], safe=True)
 
 
 class ListTasksResource:
@@ -87,9 +35,10 @@ class SubmitAnswerResource:
     def on_post(self, req, resp):
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
-        answer = DataRowAnswer.create(answer=req_as_json['answer'],
-                                      userId=req_as_json['userId'],
-                                      dataRowId=req_as_json['dataRowId'])
+        answer = Answer.create(answer=req_as_json['answer'],
+                               userId=req_as_json['userId'],
+                               contentId=req_as_json['contentId'],
+                               questionId=req_as_json['questionId'])
 
         answer.save()
 
@@ -101,20 +50,32 @@ class SubmitAnswerResource:
 
 class GetRandomJobResource:
     def on_get(self, req, resp):
-        dataRow = DataRow.select().order_by(fn.Rand()).first()
+        content = Content.select().order_by(fn.Rand()).first()
 
-        questions = Question.select().join(Task).where(Task.taskId == dataRow.taskId).get()
+        questions = Question.select().join(Task).where(Task.id == content.taskId)
+
+        questions_json = []
+        for question in questions:
+            questions_json.append({
+                'questionId': question.id,
+                'key': question.key,
+                'question': question.question,
+            })
+
+        task = content.taskId
 
         resp.body = json.dumps({
-            'dataRow': model_to_dict(dataRow),
-            'questions': [model_to_dict(questions)]
+            'taskId': task.id,
+            'contentId': content.id,
+            'content': content.dataJSON,
+            'questions': questions_json
         })
 
 
 class CreateNewUserResource:
     def on_get(self, req, resp):
-        u = User.create()
-        resp.body = json.dumps({'userId': u.userId})
+        user = User.create()
+        resp.body = json.dumps({'userId': user.id})
 
 
 class InputTaskResource:
@@ -125,20 +86,19 @@ class InputTaskResource:
 
         for questionKey in task_as_json['questionRows'].keys():
             question_string = task_as_json['questionRows'][questionKey]
-            new_question = Question.create(key=questionKey, question=question_string, taskId=task.taskId)
+            new_question = Question.create(key=questionKey, question=question_string, taskId=task.id)
             new_question.save()
 
-        for dataRow in task_as_json['dataRows']:
-            DataRow.create(dataJSON=dataRow, taskId=task.taskId)
+        Content.create(dataJSON=task_as_json['data'], taskId=task.id)
 
-        resp.body = json.dumps({'taskId': task.taskId})
+        resp.body = json.dumps({'taskId': task.id})
 
 
 class GetTaskResultsResource:
     def on_post(self, req, resp):
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
-        results = DataRowAnswer.select().join(DataRow).where(DataRow.taskId == req_as_json['taskId'])
+        results = Answer.select().join(Content).where(Content.taskId == req_as_json['taskId'])
 
         resp.body = json.dumps({
             'results': json.load(results)
