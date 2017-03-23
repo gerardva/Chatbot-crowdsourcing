@@ -53,20 +53,21 @@ class Question(BaseModel):
     taskId = ForeignKeyField(Task)
 
 
-class DataRow(BaseModel):
-    dataRowId = PrimaryKeyField()
+class Content(BaseModel):
+    contentId = PrimaryKeyField()
     dataJSON = TextField()
     taskId = ForeignKeyField(Task)
 
 
-class DataRowAnswer(BaseModel):
+class Answer(BaseModel):
     dataRowAnswerId = PrimaryKeyField()
     answer = TextField()
     userId = ForeignKeyField(User)
-    dataRowId = ForeignKeyField(DataRow, related_name="answers")
+    contentId = ForeignKeyField(Content)
+    questionId = ForeignKeyField(Question)
 
 
-mysql_db.create_tables([User, Task, Question, DataRow, DataRowAnswer], safe=True)
+mysql_db.create_tables([User, Task, Question, Content, Answer], safe=True)
 
 
 class ListTasksResource:
@@ -87,9 +88,10 @@ class SubmitAnswerResource:
     def on_post(self, req, resp):
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
-        answer = DataRowAnswer.create(answer=req_as_json['answer'],
-                                      userId=req_as_json['userId'],
-                                      dataRowId=req_as_json['dataRowId'])
+        answer = Answer.create(answer=req_as_json['answer'],
+                               userId=req_as_json['userId'],
+                               contentId=req_as_json['contentId'],
+                               questionId=req_as_json['questionId'])
 
         answer.save()
 
@@ -99,14 +101,15 @@ class SubmitAnswerResource:
         })
 
 
+
 class GetRandomJobResource:
     def on_get(self, req, resp):
-        dataRow = DataRow.select().order_by(fn.Rand()).first()
+        content = Content.select().order_by(fn.Rand()).first()
 
-        questions = Question.select().join(Task).where(Task.taskId == dataRow.taskId).get()
+        questions = Question.select().join(Task).where(Task.taskId == content.taskId).get()
 
         resp.body = json.dumps({
-            'dataRow': model_to_dict(dataRow),
+            'content': model_to_dict(content),
             'questions': [model_to_dict(questions)]
         })
 
@@ -128,8 +131,7 @@ class InputTaskResource:
             new_question = Question.create(key=questionKey, question=question_string, taskId=task.taskId)
             new_question.save()
 
-        for dataRow in task_as_json['dataRows']:
-            DataRow.create(dataJSON=dataRow, taskId=task.taskId)
+        Content.create(dataJSON=task_as_json['data'], taskId=task.taskId)
 
         resp.body = json.dumps({'taskId': task.taskId})
 
@@ -138,7 +140,7 @@ class GetTaskResultsResource:
     def on_post(self, req, resp):
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
-        results = DataRowAnswer.select().join(DataRow).where(DataRow.taskId == req_as_json['taskId'])
+        results = Answer.select().join(Content).where(Content.taskId == req_as_json['taskId'])
 
         resp.body = json.dumps({
             'results': json.load(results)

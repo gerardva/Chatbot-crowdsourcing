@@ -3,13 +3,15 @@
 import requests
 import json
 
-r = requests.get('http://localhost:5000/worker/createNewUser')
+r = requests.get('http://localhost:80/worker/createNewUser')
 
 print(r.text)
+r_as_json = json.loads(r.text)
+userId = r_as_json['userId']
 
-r = requests.post('http://localhost:5000/requester/inputTask', data=json.dumps({
+r = requests.post('http://localhost:80/requester/inputTask', data=json.dumps({
     'userId': 2,
-    'dataRows': [
+    'data': [
         {'pictureUrl': 'someUrl'}
     ],
     'questionRows': {
@@ -18,11 +20,20 @@ r = requests.post('http://localhost:5000/requester/inputTask', data=json.dumps({
     }
 }))
 
-# print(r.text)
+print(r.text)
 
-r = requests.post('http://localhost:5000/worker/submitAnswer', data=json.dumps({
-    'userId': 2,
-    'dataRowId': 2,
+r = requests.get('http://localhost:80/worker/getRandomJob')
+
+print(r.text)
+r_as_json = json.loads(r.text)
+contentId = r_as_json['content']['contentId']
+questionId = r_as_json['questions'][0]['questionId']
+
+
+r = requests.post('http://localhost:80/worker/submitAnswer', data=json.dumps({
+    'userId': userId,
+    'contentId': contentId,
+    'questionId': questionId,
     'answer': 'this is truly a legit answer'
 }))
 
