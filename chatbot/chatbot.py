@@ -105,15 +105,14 @@ def handle_message(messaging_event):
             log(r.text)
 
         task = r.json()
-        question = task["questions"][0]
-        data_json = json.loads(task["dataRow"]["dataJSON"])
+        question = task["questions"][0]  # TODO: Pick question intelligently
+        data_json = json.loads(task["content"])[0]  # TODO: When do we have multiple content?
 
         user_states[sender_id] = {
             "state": "given_task",
+            "task_id": task["taskId"],
             "question_id": question["questionId"],
-            "task_id": question["taskId"]["taskId"],
-            "user_id": question["taskId"]["userId"]["userId"],
-            "datarow_id": task["dataRow"]["dataRowId"]
+            "content_id": task["contentId"]
         }
         log(user_states)
 
@@ -126,14 +125,14 @@ def handle_message(messaging_event):
             return
 
         task = user_states[sender_id]["task_id"]
-        question = user_states[sender_id]["question_id"]
-        datarow = user_states[sender_id]["datarow_id"]
-        user = user_states[sender_id]["user_id"]
+        question_id = user_states[sender_id]["question_id"]
+        content_id = user_states[sender_id]["content_id"]
 
         data = {
             "answer": message_text[8:],
-            "userId": user_states[sender_id]["user_id"],
-            "dataRowId": user_states[sender_id]["datarow_id"]
+            "userId": 2,  # TODO: Fix registration
+            "questionId": user_states[sender_id]["question_id"],
+            "contentId": user_states[sender_id]["content_id"]  # TODO: Why is contentId needed?
         }
         r = requests.post("{base_url}/worker/submitAnswer".format(base_url=api_url),
                           json=data)
@@ -188,6 +187,7 @@ def send_message(recipient_id, message_text, quick_replies=None):
         log(r.text)
 
 
+# TODO: This is duplicate code
 def send_image(recipient_id, image_url):
     log("sending image to {recipient}: {text}".format(recipient=recipient_id, text=image_url))
 
