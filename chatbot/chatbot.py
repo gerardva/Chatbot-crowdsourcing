@@ -39,7 +39,6 @@ class ChatbotResource:
                 for messaging_event in entry["messaging"]:
 
                     if messaging_event.get("message"):  # someone sent us a message
-
                         handle_message(messaging_event)
 
                     if messaging_event.get("delivery"):  # delivery confirmation
@@ -59,26 +58,38 @@ class ChatbotResource:
 def handle_message(messaging_event):
     sender_id = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
     recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
-    message_text = messaging_event["message"].get("text")  # the message's text
 
-    if not message_text:
-        send_message(sender_id, "Error, self-destructing in 5 seconds")
-        return
+    message_text = messaging_event["message"].get("text", "")  # the message's text
+
+    quick_reply = messaging_event["message"].get("quick_reply")
+    quick_reply_payload = quick_reply["payload"] if quick_reply else None
+
+    attachment = messaging_event["message"].get("attachments")
+    coordinates = None
+    if attachment is not None:
+        attachment_type =  attachment["type"]
+        if attachment_type == "location":
+            coordinates = attachment["payload"]["coordinates"]
+        if attachment_type == "type":
+            pass # TODO: handle image
+
+
+    #if not message_text:
+    #    send_message(sender_id, "Error, self-destructing in 5 seconds")
+    #    return
 
     if str.lower(message_text) in greetings:
-        quick_replies = [
-          {
-            "content_type":"location"
-          },
-          {
-            "content_type":"text",
-            "title":"Give me a task",
-            "payload":"task"
+        quick_replies = [{
+            "content_type": "location"
+          }, {
+            "content_type": "text",
+            "title": "Give me a task",
+            "payload": "task"
           }
         ]
         send_message(sender_id, "What's next? Send your location to get even cooler tasks.", quick_replies)
 
-    elif message_text == "Give me a task":
+    elif coordinates or quick_reply_payload == "task" or message_text == "Give me a task":
         r = requests.get("{base_url}/worker/getRandomJob".format(base_url=api_url))
         if r.status_code != 200:
             log(r.status_code)
@@ -176,7 +187,7 @@ def send_image(recipient_id, image_url):
             }
         }
     })
-    
+
     r = requests.post("https://graph.facebook.com/v2.8/me/messages", params=params, headers=headers, data=data)
     if r.status_code != 200:
         log(r.status_code)
