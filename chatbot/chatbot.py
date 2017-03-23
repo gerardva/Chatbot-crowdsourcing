@@ -58,12 +58,11 @@ class ChatbotResource:
 def handle_message(messaging_event):
     sender_id = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
     recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
+    message_text = messaging_event["message"].get("text")  # the message's text
 
-    if "text" not in messaging_event["message"]:
+    if not message_text:
         send_message(sender_id, "Error, self-destructing in 5 seconds")
         return
-
-    message_text = messaging_event["message"]["text"]  # the message's text
 
     if message_text == "Give me a task":
         r = requests.get("{base_url}/worker/getRandomJob".format(base_url=api_url))
