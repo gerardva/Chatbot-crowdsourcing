@@ -9,9 +9,9 @@ user = ''
 
 
 def main(user=None):
-    message = raw_input("What's the message? ")
+    message = input("What's the message? ")
     if user == None:
-        user = users(str.lower(raw_input("Who are you? (enter first letter of your name) ")))
+        user = users(str.lower(input("Who are you? (enter first letter of your name) ")))
     timestamp = int(time.time())
 
 
@@ -42,12 +42,12 @@ def main(user=None):
     }
   ]
 })
-    print "Sending message..."
+    print("Sending message...")
     r = requests.post("http://" + HOST + ":" + PORT + "/chatbot", headers=headers, data=data)
-    print "Status: " + str(r.status_code)
-    print "Response: " + r.text
+    print("Status: " + str(r.status_code))
+    print("Response: " + r.text)
 
-    cont = raw_input("Send another message? (y/n) ")
+    cont = input("Send another message? (y/n) ")
     if cont == "y":
         main(user)
 
