@@ -160,14 +160,27 @@ def handle_message(messaging_event):
         send_message(sender_id, "I did not understand your message")
 
 
-def send_message(recipient_id, message_text, quick_replies=None):
-    log("sending message to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
+## Facebook functions
+def facebook_send(data):
     params = {
         "access_token": os.environ["PAGE_ACCESS_TOKEN"]
     }
     headers = {
         "Content-Type": "application/json"
     }
+
+    log("Sending to Facebook: {data}".format(data=data))
+    r = requests.post("https://graph.facebook.com/v2.8/me/messages", params=params, headers=headers, data=data)
+    if r.status_code != 200:
+        log("{status_code} encountered when sending Facebook data".format(status_code=r.status_code))
+        log(r.text)
+        return False
+
+    return True
+
+def send_message(recipient_id, message_text, quick_replies=None):
+    log("sending message to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
+
     data = json.dumps({
         "recipient": {
             "id": recipient_id
@@ -177,23 +190,14 @@ def send_message(recipient_id, message_text, quick_replies=None):
             "quick_replies": quick_replies
         }
     })
-    log("Sending data: {data}".format(data=data))
-    r = requests.post("https://graph.facebook.com/v2.8/me/messages", params=params, headers=headers, data=data)
-    if r.status_code != 200:
-        log(r.status_code)
-        log(r.text)
+
+    res = facebook_send(data)
+    return res
 
 
-# TODO: This is duplicate code
 def send_image(recipient_id, image_url):
-    log("sending image to {recipient}: {text}".format(recipient=recipient_id, text=image_url))
+    log("sending image to {recipient}: {image}".format(recipient=recipient_id, image=image_url))
 
-    params = {
-        "access_token": os.environ["PAGE_ACCESS_TOKEN"]
-    }
-    headers = {
-        "Content-Type": "application/json"
-    }
     data = json.dumps({
         "recipient": {
             "id": recipient_id
@@ -208,11 +212,11 @@ def send_image(recipient_id, image_url):
         }
     })
 
-    r = requests.post("https://graph.facebook.com/v2.8/me/messages", params=params, headers=headers, data=data)
-    if r.status_code != 200:
-        log(r.status_code)
-        log(r.text)
+    res = facebook_send(data)
+    return res
 
+
+## API functions
 def call_api(method, url, data=None):
     r_method = api_methods.get(method.upper())
     if r_method is None:
@@ -252,6 +256,8 @@ def post_answer(answer, user_id, question_id, content_id):
 
     return True
 
+
+## Heroku functions
 def log(message):  # simple wrapper for logging to stdout on heroku
     print(str(message))
     sys.stdout.flush()
