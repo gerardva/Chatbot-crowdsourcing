@@ -52,12 +52,12 @@ class GetRandomJobResource:
     def on_get(self, req, resp):
         content = Content.select().order_by(fn.Rand()).first()
 
-        questions = Question.select().join(Task).where(Task.taskId == content.taskId)
+        questions = Question.select().join(Task).where(Task.id == content.taskId)
 
         questions_json = []
         for question in questions:
             questions_json.append({
-                'questionId': question.questionId,
+                'questionId': question.id,
                 'key': question.key,
                 'question': question.question,
             })
@@ -65,8 +65,8 @@ class GetRandomJobResource:
         task = content.taskId
 
         resp.body = json.dumps({
-            'taskId': task.taskId,
-            'contentId': content.contentId,
+            'taskId': task.id,
+            'contentId': content.id,
             'content': content.dataJSON,
             'questions': questions_json
         })
@@ -74,8 +74,8 @@ class GetRandomJobResource:
 
 class CreateNewUserResource:
     def on_get(self, req, resp):
-        u = User.create()
-        resp.body = json.dumps({'userId': u.userId})
+        user = User.create()
+        resp.body = json.dumps({'userId': user.id})
 
 
 class InputTaskResource:
@@ -86,12 +86,12 @@ class InputTaskResource:
 
         for questionKey in task_as_json['questionRows'].keys():
             question_string = task_as_json['questionRows'][questionKey]
-            new_question = Question.create(key=questionKey, question=question_string, taskId=task.taskId)
+            new_question = Question.create(key=questionKey, question=question_string, taskId=task.id)
             new_question.save()
 
-        Content.create(dataJSON=task_as_json['data'], taskId=task.taskId)
+        Content.create(dataJSON=task_as_json['data'], taskId=task.id)
 
-        resp.body = json.dumps({'taskId': task.taskId})
+        resp.body = json.dumps({'taskId': task.id})
 
 
 class GetTaskResultsResource:

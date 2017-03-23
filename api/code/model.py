@@ -9,31 +9,33 @@ class BaseModel(Model):
 
 
 class User(BaseModel):
-    userId = PrimaryKeyField()
+    id = PrimaryKeyField()
     score = FloatField(default=0.0)
 
 
 class Task(BaseModel):
-    taskId = PrimaryKeyField()
+    id = PrimaryKeyField()
     userId = ForeignKeyField(User, related_name="tasks_created")
 
 
 class Question(BaseModel):
-    questionId = PrimaryKeyField()
+    id = PrimaryKeyField()
     key = CharField()
     question = TextField()
     taskId = ForeignKeyField(Task)
 
 
 class Content(BaseModel):
-    contentId = PrimaryKeyField()
+    id = PrimaryKeyField()
     dataJSON = TextField()
     taskId = ForeignKeyField(Task)
 
 
 class Answer(BaseModel):
-    dataRowAnswerId = PrimaryKeyField()
     answer = TextField()
     userId = ForeignKeyField(User)
     contentId = ForeignKeyField(Content)
     questionId = ForeignKeyField(Question)
+
+    class Meta:
+        primary_key = CompositeKey('userId', 'contentId', 'questionId')
