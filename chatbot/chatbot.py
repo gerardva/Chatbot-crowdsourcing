@@ -13,6 +13,7 @@ api_url = "https://fathomless-cove-38602.herokuapp.com" # no trailing slash
 user_states = {}
 greetings = {"hi", "hey", "hello", "greetings"}
 
+
 class ChatbotResource:
     def on_get(self, req, resp):
         # when the endpoint is registered as a webhook, it must echo back
@@ -77,8 +78,7 @@ def handle_message(messaging_event):
         if attachment_type == "location":
             coordinates = attachment["payload"]["coordinates"]
         if attachment_type == "image":
-            pass # TODO: handle image
-
+            pass  # TODO: handle image
 
     #if not message_text:
     #    send_message(sender_id, "Error, self-destructing in 5 seconds")
@@ -101,12 +101,12 @@ def handle_message(messaging_event):
 
     elif (coordinates or quick_reply_payload == "task" or message_text == "Give me a task")\
             and user_states[sender_id]["state"] == "idle":
-        r = requests.get("{base_url}/worker/getRandomJob".format(base_url=api_url))
+        r = requests.get("{base_url}/worker/tasks?order=random&limit=1".format(base_url=api_url))
         if r.status_code != 200:
             log(r.status_code)
             log(r.text)
 
-        task = r.json()
+        task = r.json()[0]  # Pick the only question in the list
         question = task["questions"][0]  # TODO: Pick question intelligently
         data_json = json.loads(task["content"])[0]  # TODO: When do we have multiple content?
 
@@ -132,7 +132,7 @@ def handle_message(messaging_event):
             "questionId": user_states[sender_id]["question_id"],
             "contentId": user_states[sender_id]["content_id"]  # TODO: Why is contentId needed?
         }
-        r = requests.post("{base_url}/worker/submitAnswer".format(base_url=api_url),
+        r = requests.post("{base_url}/worker/answers".format(base_url=api_url),
                           json=data)
 
         if r.status_code != 200:
