@@ -64,13 +64,14 @@ def handle_message(messaging_event):
     quick_reply = messaging_event["message"].get("quick_reply")
     quick_reply_payload = quick_reply["payload"] if quick_reply else None
 
-    attachment = messaging_event["message"].get("attachments")
+    attachments = messaging_event["message"].get("attachments")
     coordinates = None
-    if attachment is not None:
+    if attachments is not None:
+        attachment = attachments[0]
         attachment_type =  attachment["type"]
         if attachment_type == "location":
             coordinates = attachment["payload"]["coordinates"]
-        if attachment_type == "type":
+        if attachment_type == "image":
             pass # TODO: handle image
 
 
