@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import unittest
 from urllib import request
 

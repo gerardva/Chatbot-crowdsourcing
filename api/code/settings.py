@@ -2,7 +2,7 @@
 
 import json
 import os
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 with open('api/config/settings.json') as settings_file:
     settings = json.load(settings_file)

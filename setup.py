@@ -6,6 +6,7 @@ from waitress import serve
 from api.code.apiserver import add_api_routes, mysql_db
 from chatbot.chatbot import add_chatbot_routes
 
+WAITRESS_PORT = '5000'
 
 class PeeweeConnectionMiddleware(object):
     def process_request(self, req, resp):
@@ -23,5 +24,5 @@ if __name__ == '__main__':
     if 'PORT' in os.environ:
         port = os.environ['PORT']
     else:
-        port = '80'
+        port = WAITRESS_PORT
     serve(app, listen='*:' + port)
