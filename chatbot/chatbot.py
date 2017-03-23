@@ -61,6 +61,11 @@ def handle_message(messaging_event):
 
     message_text = messaging_event["message"].get("text", "")  # the message's text
 
+    if user_states.get(sender_id) is None:
+        user_states[sender_id] = {
+            "state" : "idle"
+        }
+
     quick_reply = messaging_event["message"].get("quick_reply")
     quick_reply_payload = quick_reply["payload"] if quick_reply else None
 
@@ -79,7 +84,7 @@ def handle_message(messaging_event):
     #    send_message(sender_id, "Error, self-destructing in 5 seconds")
     #    return
 
-    if str.lower(message_text) in greetings:
+    if str.lower(message_text) in greetings and user_states[sender_id]["state"] == "idle":
         quick_replies = [{
             "content_type": "location"
           }, {
@@ -90,7 +95,10 @@ def handle_message(messaging_event):
         ]
         send_message(sender_id, "What's next? Send your location to get even cooler tasks.", quick_replies)
 
-    elif coordinates or quick_reply_payload == "task" or message_text == "Give me a task":
+    elif message_text == "Give me a task" and user_states[sender_id]["state"] == "given_task":
+        send_message(sender_id, "You already have a task")
+
+    elif (coordinates or quick_reply_payload == "task" or message_text == "Give me a task") and user_states[sender_id]["state"] == "idle":
         r = requests.get("{base_url}/worker/getRandomJob".format(base_url=api_url))
         if r.status_code != 200:
             log(r.status_code)
@@ -137,6 +145,20 @@ def handle_message(messaging_event):
         user_states[sender_id] = None
 
         send_message(sender_id, "Thank you for your answer!")
+        user_states[sender_id] = {
+            "state": "idle"
+        }
+
+        # TODO: This is duplicate code, should be refactored
+        quick_replies = [{
+            "content_type": "location"
+        }, {
+            "content_type": "text",
+            "title": "Give me a task",
+            "payload": "task"
+        }
+        ]
+        send_message(sender_id, "What's next? Send your location to get even cooler tasks.", quick_replies)
 
     else:
         send_message(sender_id, "I did not understand your message")
