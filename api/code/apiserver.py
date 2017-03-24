@@ -9,7 +9,7 @@ def add_api_routes(app):
     app.add_route('/worker/tasks', WorkerTasksResource())
     app.add_route('/worker/answers', WorkerAnswersResource())
     app.add_route('/worker/users', WorkerUsersResource())
-    app.add_route('/requester/tasks/{task_id}', RequesterTasksResource())
+    app.add_route('/requester/tasks', RequesterTasksResource())
     app.add_route('/requester/tasks/{task_id}/answers', RequesterTasksAnswersResource())
 
 
