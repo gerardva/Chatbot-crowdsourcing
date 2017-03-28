@@ -31,6 +31,11 @@ class Content(BaseModel):
     dataJSON = TextField()
     taskId = ForeignKeyField(Task)
 
+class Locality(BaseModel):
+    id = PrimaryKeyField()
+    contentId = ForeignKeyField(Content)
+    Longitude = FloatField()
+    Latitude = FloatField()
 
 class Answer(BaseModel):
     answer = TextField()
