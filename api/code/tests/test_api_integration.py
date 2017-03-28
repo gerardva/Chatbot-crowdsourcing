@@ -30,11 +30,11 @@ class ApiIntegrationTest(TestCase):
         r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
             'userId': self.userId,
             'data': [
-                {'pictureUrl': 'someUrl'}
+                {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}
             ],
             'questionRows': {
-                'q1': 'what location',
-                'q2': 'other q'
+                'q1': 'What company is this receipt from?',
+                'q2': 'What is the address of this company?'
             }
         }))
 
@@ -56,7 +56,7 @@ class ApiIntegrationTest(TestCase):
             'userId': self.userId,
             'contentId': self.contentId,
             'questionId': self.questionId,
-            'answer': 'this is truly a legit answer'
+            'answer': 'Berghotel Grosse Scheidegg'
         }))
 
         print(r.text)
