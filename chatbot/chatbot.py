@@ -68,10 +68,11 @@ def handle_message(messaging_event):
 
     message_text = messaging_event["message"].get("text", "")  # the message's text
 
+    # If we haven't seen the user before, check if the user is registered
     if user_states.get(sender_id) is None:
-        user_states[sender_id] = {
-            "state" : "idle"
-        }
+        get_user(sender_id)
+
+    user_state = user_states[sender_id]  # This should not be None after get_user
 
     quick_reply = messaging_event["message"].get("quick_reply")
     quick_reply_payload = quick_reply["payload"] if quick_reply else None
@@ -87,7 +88,7 @@ def handle_message(messaging_event):
             pass  # TODO: handle image
 
     # Handle initial message
-    if str.lower(message_text) in greetings and user_states[sender_id]["state"] == "idle":
+    if str.lower(message_text) in greetings and user_state["state"] == "idle":
         quick_replies = [{
             "content_type": "location"
           }, {
@@ -99,12 +100,12 @@ def handle_message(messaging_event):
         send_message(sender_id, "What's up? I can give you a task, but if you send your location "
                                 "I can give you even cooler tasks.", quick_replies)
 
-    elif message_text == "Give me a task" and user_states[sender_id]["state"] == "given_task":
+    elif message_text == "Give me a task" and user_state["state"] == "given_task":
         send_message(sender_id, "You already have a task")
 
     # Handle giving task
     elif (coordinates or quick_reply_payload == "task" or message_text == "Give me a task")\
-            and user_states[sender_id]["state"] == "idle":
+            and user_state["state"] == "idle":
 
         task = get_random_task()
         if not task:
@@ -116,6 +117,7 @@ def handle_message(messaging_event):
 
         user_states[sender_id] = {
             "state": "given_task",
+            "user_id": user_state["user_id"],
             "task_id": task["taskId"],
             "question_id": question["questionId"],
             "content_id": task["contentId"]
@@ -126,10 +128,10 @@ def handle_message(messaging_event):
         send_message(sender_id, question["question"])
 
     # Handle submitting answer
-    elif user_states[sender_id] is not None and user_states[sender_id]["state"] == "given_task":
-        user_id = 2  # TODO: Fix registration
-        question_id = user_states[sender_id]["question_id"]
-        content_id = user_states[sender_id]["content_id"]
+    elif user_state is not None and user_state["state"] == "given_task":
+        user_id = user_state["user_id"]
+        question_id = user_state["question_id"]
+        content_id = user_state["content_id"]
 
         res = post_answer(message_text, user_id, question_id, content_id)
 
@@ -137,11 +139,10 @@ def handle_message(messaging_event):
             send_message(sender_id, "Sorry, something went wrong when submitting your answer")
             return
 
-        user_states[sender_id] = None
-
         send_message(sender_id, "Thank you for your answer!")
         user_states[sender_id] = {
-            "state": "idle"
+            "state": "idle",
+            "user_id": user_state["user_id"]
         }
 
         # TODO: This is duplicate code, should be refactored
@@ -159,6 +160,15 @@ def handle_message(messaging_event):
     else:
         send_message(sender_id, "I did not understand your message")
 
+def get_user(sender_id):
+    #TODO: Get user information from database and store it in states
+    #TODO: Register user if not registered yet
+
+    if user_states.get(sender_id) is None:
+        user_states[sender_id] = {
+            "state": "idle",
+            "user_id": 2
+        }
 
 ## Facebook functions
 def facebook_send(data):
