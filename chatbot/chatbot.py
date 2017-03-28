@@ -63,32 +63,16 @@ class ChatbotResource:
 
 
 def handle_message(messaging_event):
-    sender_id = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
-    recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
-
-    message_text = messaging_event["message"].get("text", "")  # the message's text
+    message = construct_message(messaging_event)
 
     # If we haven't seen the user before, check if the user is registered
-    if user_states.get(sender_id) is None:
-        get_user(sender_id)
+    if user_states.get(message["sender_id"]) is None:
+        get_user(message["sender_id"])
 
-    user_state = user_states[sender_id]  # This should not be None after get_user
-
-    quick_reply = messaging_event["message"].get("quick_reply")
-    quick_reply_payload = quick_reply["payload"] if quick_reply else None
-
-    attachments = messaging_event["message"].get("attachments")
-    coordinates = None
-    if attachments is not None:
-        attachment = attachments[0]
-        attachment_type =  attachment["type"]
-        if attachment_type == "location":
-            coordinates = attachment["payload"]["coordinates"]
-        if attachment_type == "image":
-            pass  # TODO: handle image
+    user_state = user_states[message["sender_id"]]  # This should not be None after get_user
 
     # Handle initial message
-    if str.lower(message_text) in greetings and user_state["state"] == "idle":
+    if str.lower(message["text"]) in greetings and user_state["state"] == "idle":
         quick_replies = [{
             "content_type": "location"
           }, {
@@ -97,25 +81,25 @@ def handle_message(messaging_event):
             "payload": "task"
           }
         ]
-        send_message(sender_id, "What's up? I can give you a task, but if you send your location "
-                                "I can give you even cooler tasks.", quick_replies)
+        send_message(message["sender_id"], "What's up? I can give you a task, but if you send your location "
+                                            "I can give you even cooler tasks.", quick_replies)
 
-    elif message_text == "Give me a task" and user_state["state"] == "given_task":
-        send_message(sender_id, "You already have a task")
+    elif message["text"] == "Give me a task" and user_state["state"] == "given_task":
+        send_message(message["sender_id"], "You already have a task")
 
     # Handle giving task
-    elif (coordinates or quick_reply_payload == "task" or message_text == "Give me a task")\
+    elif (message["coordinates"] or message["quick_reply_payload"] == "task" or message["text"] == "Give me a task")\
             and user_state["state"] == "idle":
 
         task = get_random_task()
         if not task:
-            send_message(sender_id, "Sorry, something went wrong when retrieving your task")
+            send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
             return
 
         question = task["questions"][0]  # TODO: Pick question intelligently
         data_json = json.loads(task["content"])[0]  # TODO: When do we have multiple content?
 
-        user_states[sender_id] = {
+        user_states[message["sender_id"]] = {
             "state": "given_task",
             "user_id": user_state["user_id"],
             "task_id": task["taskId"],
@@ -124,8 +108,8 @@ def handle_message(messaging_event):
         }
         log(user_states)
 
-        send_image(sender_id, data_json["pictureUrl"])
-        send_message(sender_id, question["question"])
+        send_image(message["sender_id"], data_json["pictureUrl"])
+        send_message(message["sender_id"], question["question"])
 
     # Handle submitting answer
     elif user_state is not None and user_state["state"] == "given_task":
@@ -133,14 +117,14 @@ def handle_message(messaging_event):
         question_id = user_state["question_id"]
         content_id = user_state["content_id"]
 
-        res = post_answer(message_text, user_id, question_id, content_id)
+        res = post_answer(message["text"], user_id, question_id, content_id)
 
         if not res:
-            send_message(sender_id, "Sorry, something went wrong when submitting your answer")
+            send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")
             return
 
-        send_message(sender_id, "Thank you for your answer!")
-        user_states[sender_id] = {
+        send_message(message["sender_id"], "Thank you for your answer!")
+        user_states[message["sender_id"]] = {
             "state": "idle",
             "user_id": user_state["user_id"]
         }
@@ -154,11 +138,34 @@ def handle_message(messaging_event):
             "payload": "task"
         }
         ]
-        send_message(sender_id, "What's next? Send your location to get even cooler tasks.", quick_replies)
+        send_message(message["sender_id"], "What's next? Send your location to get even cooler tasks.", quick_replies)
 
     # Handle default case
     else:
-        send_message(sender_id, "I did not understand your message")
+        send_message(message["sender_id"], "I did not understand your message")
+
+
+def construct_message(messaging_event):
+    message = {}
+
+    message["sender_id"] = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
+
+    message["text"] = messaging_event["message"].get("text", "")
+
+    quick_reply = messaging_event["message"].get("quick_reply")
+    message["quick_reply_payload"] = quick_reply["payload"] if quick_reply else None
+
+    attachments = messaging_event["message"].get("attachments")
+    if attachments is not None:
+        attachment = attachments[0]
+        attachment_type = attachment["type"]
+        if attachment_type == "location":
+            message["coordinates"] = attachment["payload"]["coordinates"]
+        if attachment_type == "image":
+            message["image"] = None  # TODO: handle image
+
+    return message
+
 
 def get_user(sender_id):
     #TODO: Get user information from database and store it in states
