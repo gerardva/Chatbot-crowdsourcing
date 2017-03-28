@@ -13,7 +13,7 @@ def add_api_routes(app):
     app.add_route('/requester/tasks/{task_id}/answers', RequesterTasksAnswersResource())
 
 
-mysql_db.create_tables([User, Task, Question, Content, Answer], safe=True)
+mysql_db.create_tables([User, Task, Question, Content, Answer, Location], safe=True)
 
 
 class WorkerAnswersResource:
@@ -53,18 +53,16 @@ class WorkerTasksResource:
         tasks = []
         # TODO: query by task, so user can get a list of different tasks to choose from instead of different contents
         for contents in contents:
-            questions = Question.select().join(Task).where(Task.id == contents.taskId)
+            questions = Question.select(Question, Task).join(Task).where(Task.id == contents.taskId).order_by(Question.index)
 
-            # TODO: order questions by key
             questions_json = []
             for question in questions:
                 questions_json.append({
                     'questionId': question.id,
-                    'key': question.key,
+                    'index': question.index,
                     'question': question.question,
                 })
 
-            # TODO: put this in a single join at the start, to prevent generating multiple queries
             task = contents.taskId
 
             tasks.append({
@@ -86,17 +84,32 @@ class RequesterTasksResource:
     def on_post(self, req, resp):
         print("task post called!")
         task_as_json = json.loads(req.stream.read().decode('utf-8'))
-        task = Task.create(userId=task_as_json['userId'])
+        task = Task.create(userId=task_as_json['userId'],
+                           description=task_as_json['description'])
         task.save()
 
-        for questionKey in task_as_json['questionRows'].keys():
-            question_string = task_as_json['questionRows'][questionKey]
-            new_question = Question.create(key=questionKey, question=question_string, taskId=task.id)
+        for index, question_json in enumerate(task_as_json['questionRows']):
+            question_string = question_json['question']
+            question_content_type = question_json['contentType']
+            new_question = Question.create(index=index,
+                                           question=question_string,
+                                           contentType=question_content_type,
+                                           taskId=task.id)
             new_question.save()
 
-        Content.create(dataJSON=task_as_json['data'], taskId=task.id)
+        content_id = Content.create(dataJSON=task_as_json['data'], taskId=task.id)
+
+        if 'dataLocation' in task_as_json:
+            add_location(content_id, task_as_json['dataLocation'])
 
         resp.body = json.dumps({'taskId': task.id})
+
+
+def add_location(content_id, location_as_json):
+    location = Location.create(contentId=content_id,
+                               latitude=location_as_json['latitude'],
+                               longitude=location_as_json['longitude'])
+    location.save()
 
 
 class RequesterTasksAnswersResource:

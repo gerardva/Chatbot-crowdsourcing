@@ -29,13 +29,18 @@ class ApiIntegrationTest(TestCase):
     def post_task(self):
         r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
             'userId': self.userId,
+            'description': 'annotation of receipts',
+            'dataLocation': {'longitude': 0.0,
+                             'latitude': 0.0},
             'data': [
                 {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}
             ],
-            'questionRows': {
-                'q1': 'What company is this receipt from?',
-                'q2': 'What is the address of this company?'
-            }
+            'questionRows': [
+                {'question': 'What company is this receipt from?',
+                 'contentType': 'plaintext'},
+                {'question': 'What is the address of this company?',
+                 'contentType': 'plaintext'}
+            ]
         }))
 
         print(r.text)
@@ -49,9 +54,10 @@ class ApiIntegrationTest(TestCase):
         self.questionId = r_as_json['questions'][0]['questionId']
 
     def post_answer(self):
-        print(self.userId)
-        print(self.contentId)
-        print(self.questionId)
+        print('userId: ' + str(self.userId))
+        print('contentId: ' + str(self.contentId))
+        print('questionId: ' + str(self.questionId))
+
         r = requests.post('http://localhost:5000/worker/answers', data=json.dumps({
             'userId': self.userId,
             'contentId': self.contentId,
