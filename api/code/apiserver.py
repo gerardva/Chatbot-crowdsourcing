@@ -61,6 +61,7 @@ class WorkerTasksResource:
                     'questionId': question.id,
                     'index': question.index,
                     'question': question.question,
+                    'answerType': question.answerType
                 })
 
             task = content.taskId

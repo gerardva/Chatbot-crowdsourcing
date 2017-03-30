@@ -9,21 +9,20 @@ headers = {
 }
 
 
-
 def main(user=None):
-    type = input("Send message, location or image? (m/l/i) ")
     if user == None:
         user = users(str.lower(input("Who are you? (enter first letter of your name) ")))
-    if type == "m":
-        message = input("What's the message? ")
-        send_messsage(message, user)
-    elif type == "l":
+
+    mode = input("What's your message? You can also send (L)ocation or (I)mage ")
+    if mode.lower() == "l":
         send_location(user)
-    elif type == "i":
+    elif mode.lower() == "i":
         send_image(user)
-    cont = input("Send another message? (y/n) ")
-    if cont == "y":
-        main(user)
+    else:
+        send_message(mode, user)
+
+    main(user)
+
 
 def send_image(user):
     timestamp = int(time.time())
@@ -55,6 +54,7 @@ def send_image(user):
            ]
          })
     post(data)
+
 
 def send_location(user):
     timestamp = int(time.time())
@@ -98,7 +98,7 @@ def send_location(user):
     post(data)
 
 
-def send_messsage(message, user):
+def send_message(message, user):
     timestamp = int(time.time())
     data = json.dumps(
         {"object": "page",
@@ -133,6 +133,7 @@ def post(data):
     r = requests.post("http://" + HOST + ":" + PORT + "/chatbot", headers=headers, data=data)
     print("Status: " + str(r.status_code))
     print("Response: " + r.text)
+
 
 def users(letter):
     return {
