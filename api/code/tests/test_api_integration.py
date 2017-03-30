@@ -37,9 +37,9 @@ class ApiIntegrationTest(TestCase):
             ],
             'questionRows': [
                 {'question': 'What company is this receipt from?',
-                 'contentType': 'plaintext'},
+                 'answerType': 'plaintext'},
                 {'question': 'What is the address of this company?',
-                 'contentType': 'plaintext'}
+                 'answerType': 'plaintext'}
             ]
         }))
 

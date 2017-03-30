@@ -23,7 +23,7 @@ class Question(BaseModel):
     id = PrimaryKeyField()
     index = IntegerField()
     question = TextField()
-    contentType = TextField()
+    answerType = TextField()
     taskId = ForeignKeyField(Task)
 
 

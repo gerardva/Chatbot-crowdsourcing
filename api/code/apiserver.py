@@ -90,10 +90,10 @@ class RequesterTasksResource:
 
         for index, question_json in enumerate(task_as_json['questionRows']):
             question_string = question_json['question']
-            question_content_type = question_json['contentType']
+            answer_type = question_json['answerType']
             new_question = Question.create(index=index,
                                            question=question_string,
-                                           contentType=question_content_type,
+                                           answerType=answer_type,
                                            taskId=task.id)
             new_question.save()
 
