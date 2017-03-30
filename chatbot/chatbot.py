@@ -112,7 +112,7 @@ def handle_message(messaging_event):
             return
 
         question = task["questions"][0]  # TODO: Pick question intelligently
-        data_json = json.loads(task["content"])[0]  # TODO: When do we have multiple content?
+        data_json = json.loads(task["content"])
 
         user_states[sender_id] = {
             "state": "given_task",
