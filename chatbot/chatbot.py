@@ -91,7 +91,7 @@ def handle_message_idle(message):
             return
 
         questions = task["questions"]
-        data_json = json.loads(task["content"])[0]  # TODO: When do we have multiple content?
+        data_json = json.loads(task["content"])
 
         user_states[message["sender_id"]] = {
             "state": "given_task",

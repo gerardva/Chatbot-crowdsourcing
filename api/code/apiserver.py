@@ -52,8 +52,8 @@ class WorkerTasksResource:
 
         tasks = []
         # TODO: query by task, so user can get a list of different tasks to choose from instead of different contents
-        for contents in contents:
-            questions = Question.select(Question, Task).join(Task).where(Task.id == contents.taskId).order_by(Question.index)
+        for content in contents:
+            questions = Question.select(Question, Task).join(Task).where(Task.id == content.taskId).order_by(Question.index)
 
             questions_json = []
             for question in questions:
@@ -64,12 +64,12 @@ class WorkerTasksResource:
                     'answerType': question.answerType
                 })
 
-            task = contents.taskId
+            task = content.taskId
 
             tasks.append({
                 'taskId': task.id,
-                'contentId': contents.id,
-                'content': contents.dataJSON,
+                'contentId': content.id,
+                'content': content.dataJSON,
                 'questions': questions_json
             })
         resp.body = json.dumps(tasks)
@@ -98,7 +98,8 @@ class RequesterTasksResource:
                                            taskId=task.id)
             new_question.save()
 
-        content_id = Content.create(dataJSON=task_as_json['data'], taskId=task.id)
+        for i, content in enumerate(task_as_json['data']):
+            content_id = Content.create(dataJSON=task_as_json['data'][i], taskId=task.id)
 
         if 'dataLocation' in task_as_json:
             add_location(content_id, task_as_json['dataLocation'])
