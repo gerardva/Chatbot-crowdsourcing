@@ -1,9 +1,11 @@
 import json
 import chatbot.api_helper as ApiHelper
+import chatbot.facebook as Facebook
 from chatbot.logger import log
 
 user_states = {}
 greetings = {"hi", "hey", "hello", "greetings"}
+
 
 def handle_message(messaging_event):
     message = construct_message(messaging_event)
@@ -22,7 +24,8 @@ def handle_message(messaging_event):
 
     # Handle default case
     else:
-        ApiHelper.send_message(message["sender_id"], "I did not understand your message")
+        Facebook.send_message(message["sender_id"], "I did not understand your message")
+
 
 def handle_message_idle(message):
     # Handle giving task
@@ -30,7 +33,7 @@ def handle_message_idle(message):
         "text"] == "Give me a task":
         task = ApiHelper.get_random_task()
         if not task:
-            ApiHelper.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
+            Facebook.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
             return
 
         questions = task["questions"]
@@ -47,7 +50,7 @@ def handle_message_idle(message):
         log(user_states)
 
         ApiHelper.send_image(message["sender_id"], data_json["pictureUrl"])
-        ApiHelper.send_message(message["sender_id"], questions[0]["question"])
+        Facebook.send_message(message["sender_id"], questions[0]["question"])
 
     # Handle initial message
     else:  # str.lower(message["text"]) in greetings:
@@ -59,12 +62,12 @@ def handle_message_idle(message):
             "payload": "task"
         }]
 
-        ApiHelper.send_message(message["sender_id"], "What's up? I can give you a task, but if you send your location "
+        Facebook.send_message(message["sender_id"], "What's up? I can give you a task, but if you send your location "
                                            "I can give you even cooler tasks.", quick_replies)
 
 def handle_message_given_task(message):
     if message["text"] == "Give me a task":
-        ApiHelper.send_message(message["sender_id"], "You already have a task")
+        Facebook.send_message(message["sender_id"], "You already have a task")
         return
 
     user_state = user_states[message["sender_id"]]
@@ -75,14 +78,14 @@ def handle_message_given_task(message):
     answer = None
     if answer_type == "plaintext":
         if not message["text"]:
-            ApiHelper.send_message(message["sender_id"], "I was expecting text as an answer to this question..")
+            Facebook.send_message(message["sender_id"], "I was expecting text as an answer to this question..")
             return
 
         answer = message["text"]
 
     if answer_type == "image":
         if not message["image"]:
-            ApiHelper.send_message(message["sender_id"], "I was expecting an image as an answer to this question..")
+            Facebook.send_message(message["sender_id"], "I was expecting an image as an answer to this question..")
             return
 
         answer = message["image"]
@@ -94,11 +97,11 @@ def handle_message_given_task(message):
     res = ApiHelper.post_answer(answer, user_id, question_id, content_id)
 
     if not res:
-        ApiHelper.send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")
+        Facebook.send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")
         return
 
     if current_question == len(questions) - 1:
-        ApiHelper.send_message(message["sender_id"], "Thank you for your answer, you're done!")
+        Facebook.send_message(message["sender_id"], "Thank you for your answer, you're done!")
         user_states[message["sender_id"]] = {
             "state": "idle",
             "user_id": user_state["user_id"]
@@ -108,8 +111,9 @@ def handle_message_given_task(message):
 
     else:
         user_state["current_question"] = current_question + 1
-        ApiHelper.send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
-        ApiHelper.send_message(message["sender_id"], questions[current_question + 1]["question"])
+        Facebook.send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
+        Facebook.send_message(message["sender_id"], questions[current_question + 1]["question"])
+
 
 def construct_message(messaging_event):
     message = {}
@@ -132,8 +136,8 @@ def construct_message(messaging_event):
 
     return message
 
+
 def get_user(sender_id):
-    # TODO: Get user information from database and store it in states
     # TODO: Register user if not registered yet
     user = ApiHelper.call_api("GET", "/worker/users");
     if not user:

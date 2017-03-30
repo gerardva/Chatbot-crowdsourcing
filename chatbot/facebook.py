@@ -1,6 +1,46 @@
 import requests
 import os
+import json
 from chatbot.logger import log
+
+
+def send_message(recipient_id, message_text, quick_replies=None):
+    log("sending message to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
+
+    data = json.dumps({
+        "recipient": {
+            "id": recipient_id
+        },
+        "message": {
+            "text": message_text,
+            "quick_replies": quick_replies
+        }
+    })
+
+    res = facebook_send(data)
+    return res
+
+
+def send_image(recipient_id, image_url):
+    log("sending image to {recipient}: {image}".format(recipient=recipient_id, image=image_url))
+
+    data = json.dumps({
+        "recipient": {
+            "id": recipient_id
+        },
+        "message": {
+            "attachment": {
+                "type": "image",
+                "payload": {
+                    "url": image_url
+                }
+            }
+        }
+    })
+
+    res = facebook_send(data)
+    return res
+
 
 def facebook_send(data):
     params = {
