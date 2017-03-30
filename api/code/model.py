@@ -33,8 +33,7 @@ class Content(BaseModel):
     taskId = ForeignKeyField(Task)
 
 class Location(BaseModel):
-    id = PrimaryKeyField()
-    contentId = ForeignKeyField(Content)
+    contentId = ForeignKeyField(Content, primary_key=True)
     longitude = FloatField()
     latitude = FloatField()
 
