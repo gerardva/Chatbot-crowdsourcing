@@ -99,7 +99,7 @@ class RequesterTasksResource:
             new_question.save()
 
         for i, content in enumerate(task_as_json['data']):
-            content_id = Content.create(dataJSON=task_as_json['data'][i], taskId=task.id)
+            content_id = Content.create(dataJSON=json.dumps(task_as_json['data'][i]), taskId=task.id)
 
         if 'dataLocation' in task_as_json:
             add_location(content_id, task_as_json['dataLocation'])
