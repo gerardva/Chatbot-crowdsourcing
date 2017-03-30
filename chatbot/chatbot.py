@@ -9,7 +9,7 @@ import requests
 def add_chatbot_routes(app):
     app.add_route('/chatbot', ChatbotResource())
 
-api_url = "https://fathomless-cove-38602.herokuapp.com" # no trailing slash
+api_url = "https://fathomless-cove-38602.herokuapp.com"  # no trailing slash
 api_methods = {
     'GET': requests.get,
     'POST': requests.post,
@@ -90,7 +90,7 @@ def handle_message_idle(message):
             send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
             return
 
-        questions = task["questions"]  # TODO: Pick question intelligently
+        questions = task["questions"]
         data_json = json.loads(task["content"])[0]  # TODO: When do we have multiple content?
 
         user_states[message["sender_id"]] = {
@@ -121,38 +121,53 @@ def handle_message_idle(message):
 
 
 def handle_message_given_task(message):
-    user_state = user_states[message["sender_id"]]
-
     if message["text"] == "Give me a task":
         send_message(message["sender_id"], "You already have a task")
+        return
 
-    # Handle submitting answer
-    else:
-        user_id = user_state["user_id"]
-        current_question = user_state["current_question"];
-        questions = user_state["questions"]
-        question_id = questions[current_question]["questionId"]
-        content_id = user_state["content_id"]
+    user_state = user_states[message["sender_id"]]
+    current_question = user_state["current_question"]
+    questions = user_state["questions"]
+    answer_type = questions[current_question]["answerType"]
 
-        res = post_answer(message["text"], user_id, question_id, content_id)
-
-        if not res:
-            send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")
+    answer = None
+    if answer_type == "plaintext":
+        if not message["text"]:
+            send_message(message["sender_id"], "I was expecting text as an answer to this question..")
             return
 
-        if current_question == len(questions) - 1:
-            send_message(message["sender_id"], "Thank you for your answer, you're done!")
-            user_states[message["sender_id"]] = {
-                "state": "idle",
-                "user_id": user_state["user_id"]
-            }
+        answer = message["text"]
 
-            handle_message_idle(message)
-        else:
-            user_state["current_question"] = current_question + 1
-            send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
-            send_message(message["sender_id"], questions[current_question + 1]["question"])
+    if answer_type == "image":
+        if not message["image"]:
+            send_message(message["sender_id"], "I was expecting an image as an answer to this question..")
+            return
 
+        answer = message["image"]
+
+    user_id = user_state["user_id"]
+    question_id = questions[current_question]["questionId"]
+    content_id = user_state["content_id"]
+
+    res = post_answer(answer, user_id, question_id, content_id)
+
+    if not res:
+        send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")
+        return
+
+    if current_question == len(questions) - 1:
+        send_message(message["sender_id"], "Thank you for your answer, you're done!")
+        user_states[message["sender_id"]] = {
+            "state": "idle",
+            "user_id": user_state["user_id"]
+        }
+
+        handle_message_idle(message)
+
+    else:
+        user_state["current_question"] = current_question + 1
+        send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
+        send_message(message["sender_id"], questions[current_question + 1]["question"])
 
 
 def construct_message(messaging_event):
@@ -167,12 +182,12 @@ def construct_message(messaging_event):
 
     attachments = messaging_event["message"].get("attachments")
     if attachments is not None:
-        attachment = attachments[0]
+        attachment = attachments[0]  # Pick first attachment, discard the rest
         attachment_type = attachment["type"]
         if attachment_type == "location":
             message["coordinates"] = attachment["payload"]["coordinates"]
         if attachment_type == "image":
-            message["image"] = None  # TODO: handle image
+            message["image"] = attachment["payload"]["url"]
 
     return message
 
