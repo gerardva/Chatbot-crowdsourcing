@@ -15,14 +15,15 @@ class User(BaseModel):
 
 class Task(BaseModel):
     id = PrimaryKeyField()
+    description = TextField()
     userId = ForeignKeyField(User, related_name="tasks_created")
 
 
 class Question(BaseModel):
     id = PrimaryKeyField()
-    # TODO: change key to IntegerField
-    key = CharField()
+    index = IntegerField()
     question = TextField()
+    answerType = TextField()
     taskId = ForeignKeyField(Task)
 
 
@@ -31,6 +32,10 @@ class Content(BaseModel):
     dataJSON = TextField()
     taskId = ForeignKeyField(Task)
 
+class Location(BaseModel):
+    contentId = ForeignKeyField(Content, primary_key=True)
+    longitude = FloatField()
+    latitude = FloatField()
 
 class Answer(BaseModel):
     answer = TextField()
