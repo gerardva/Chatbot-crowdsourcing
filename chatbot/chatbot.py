@@ -71,26 +71,20 @@ def handle_message(messaging_event):
 
     user_state = user_states[message["sender_id"]]  # This should not be None after get_user
 
-    # Handle initial message
-    if str.lower(message["text"]) in greetings and user_state["state"] == "idle":
-        quick_replies = [{
-            "content_type": "location"
-          }, {
-            "content_type": "text",
-            "title": "Give me a task",
-            "payload": "task"
-          }
-        ]
-        send_message(message["sender_id"], "What's up? I can give you a task, but if you send your location "
-                                            "I can give you even cooler tasks.", quick_replies)
+    if user_state["state"] == "idle":
+        handle_message_idle(message)
 
-    elif message["text"] == "Give me a task" and user_state["state"] == "given_task":
-        send_message(message["sender_id"], "You already have a task")
+    elif user_state["state"] == "given_task":
+        handle_message_given_task(message)
 
+    # Handle default case
+    else:
+        send_message(message["sender_id"], "I did not understand your message")
+
+
+def handle_message_idle(message):
     # Handle giving task
-    elif (message["coordinates"] or message["quick_reply_payload"] == "task" or message["text"] == "Give me a task")\
-            and user_state["state"] == "idle":
-
+    if message.get("coordinates") or message.get("quick_reply_payload") == "task" or message["text"] == "Give me a task":
         task = get_random_task()
         if not task:
             send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
@@ -101,7 +95,7 @@ def handle_message(messaging_event):
 
         user_states[message["sender_id"]] = {
             "state": "given_task",
-            "user_id": user_state["user_id"],
+            "user_id": user_states[message["sender_id"]]["user_id"],
             "task_id": task["taskId"],
             "question_id": question["questionId"],
             "content_id": task["contentId"]
@@ -111,8 +105,28 @@ def handle_message(messaging_event):
         send_image(message["sender_id"], data_json["pictureUrl"])
         send_message(message["sender_id"], question["question"])
 
+    # Handle initial message
+    else:  # str.lower(message["text"]) in greetings:
+        quick_replies = [{
+            "content_type": "location"
+        }, {
+            "content_type": "text",
+            "title": "Give me a task",
+            "payload": "task"
+        }]
+
+        send_message(message["sender_id"], "What's up? I can give you a task, but if you send your location "
+                                           "I can give you even cooler tasks.", quick_replies)
+
+
+def handle_message_given_task(message):
+    user_state = user_states[message["sender_id"]]
+
+    if message["text"] == "Give me a task":
+        send_message(message["sender_id"], "You already have a task")
+
     # Handle submitting answer
-    elif user_state is not None and user_state["state"] == "given_task":
+    else:
         user_id = user_state["user_id"]
         question_id = user_state["question_id"]
         content_id = user_state["content_id"]
@@ -129,20 +143,7 @@ def handle_message(messaging_event):
             "user_id": user_state["user_id"]
         }
 
-        # TODO: This is duplicate code, should be refactored
-        quick_replies = [{
-            "content_type": "location"
-        }, {
-            "content_type": "text",
-            "title": "Give me a task",
-            "payload": "task"
-        }
-        ]
-        send_message(message["sender_id"], "What's next? Send your location to get even cooler tasks.", quick_replies)
-
-    # Handle default case
-    else:
-        send_message(message["sender_id"], "I did not understand your message")
+        handle_message_idle(message)
 
 
 def construct_message(messaging_event):
