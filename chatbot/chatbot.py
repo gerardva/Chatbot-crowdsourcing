@@ -90,20 +90,21 @@ def handle_message_idle(message):
             send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
             return
 
-        question = task["questions"][0]  # TODO: Pick question intelligently
+        questions = task["questions"]  # TODO: Pick question intelligently
         data_json = json.loads(task["content"])[0]  # TODO: When do we have multiple content?
 
         user_states[message["sender_id"]] = {
             "state": "given_task",
             "user_id": user_states[message["sender_id"]]["user_id"],
             "task_id": task["taskId"],
-            "question_id": question["questionId"],
+            "questions": questions,
+            "current_question": 0,
             "content_id": task["contentId"]
         }
         log(user_states)
 
         send_image(message["sender_id"], data_json["pictureUrl"])
-        send_message(message["sender_id"], question["question"])
+        send_message(message["sender_id"], questions[0]["question"])
 
     # Handle initial message
     else:  # str.lower(message["text"]) in greetings:
@@ -128,7 +129,9 @@ def handle_message_given_task(message):
     # Handle submitting answer
     else:
         user_id = user_state["user_id"]
-        question_id = user_state["question_id"]
+        current_question = user_state["current_question"];
+        questions = user_state["questions"]
+        question_id = questions[current_question]["questionId"]
         content_id = user_state["content_id"]
 
         res = post_answer(message["text"], user_id, question_id, content_id)
@@ -137,13 +140,19 @@ def handle_message_given_task(message):
             send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")
             return
 
-        send_message(message["sender_id"], "Thank you for your answer!")
-        user_states[message["sender_id"]] = {
-            "state": "idle",
-            "user_id": user_state["user_id"]
-        }
+        if current_question == len(questions) - 1:
+            send_message(message["sender_id"], "Thank you for your answer, you're done!")
+            user_states[message["sender_id"]] = {
+                "state": "idle",
+                "user_id": user_state["user_id"]
+            }
 
-        handle_message_idle(message)
+            handle_message_idle(message)
+        else:
+            user_state["current_question"] = current_question + 1
+            send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
+            send_message(message["sender_id"], questions[current_question + 1]["question"])
+
 
 
 def construct_message(messaging_event):
