@@ -170,11 +170,14 @@ def construct_message(messaging_event):
 def get_user(sender_id):
     #TODO: Get user information from database and store it in states
     #TODO: Register user if not registered yet
+    user = call_api("GET", "/worker/users");
+    if not user:
+        return False
 
     if user_states.get(sender_id) is None:
         user_states[sender_id] = {
             "state": "idle",
-            "user_id": 2
+            "user_id": user["userId"]
         }
 
 ## Facebook functions
