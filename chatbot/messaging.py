@@ -1,6 +1,6 @@
 import json
-import chatbot.api_helper as ApiHelper
-import chatbot.facebook as Facebook
+import chatbot.api_helper as Api
+import chatbot.facebook_helper as Facebook
 from chatbot.logger import log
 
 user_states = {}
@@ -31,7 +31,7 @@ def handle_message_idle(message):
     # Handle giving task
     if message.get("coordinates") or message.get("quick_reply_payload") == "task" or message[
         "text"] == "Give me a task":
-        task = ApiHelper.get_random_task()
+        task = Api.get_random_task()
         if not task:
             Facebook.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
             return
@@ -49,7 +49,7 @@ def handle_message_idle(message):
         }
         log(user_states)
 
-        ApiHelper.send_image(message["sender_id"], data_json["pictureUrl"])
+        Api.send_image(message["sender_id"], data_json["pictureUrl"])
         Facebook.send_message(message["sender_id"], questions[0]["question"])
 
     # Handle initial message
@@ -94,7 +94,7 @@ def handle_message_given_task(message):
     question_id = questions[current_question]["questionId"]
     content_id = user_state["content_id"]
 
-    res = ApiHelper.post_answer(answer, user_id, question_id, content_id)
+    res = Api.post_answer(answer, user_id, question_id, content_id)
 
     if not res:
         Facebook.send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")
@@ -139,7 +139,7 @@ def construct_message(messaging_event):
 
 def get_user(sender_id):
     # TODO: Register user if not registered yet
-    user = ApiHelper.call_api("GET", "/worker/users");
+    user = Api.call_api("GET", "/worker/users");
     if not user:
         return False
 

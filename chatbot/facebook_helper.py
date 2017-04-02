@@ -17,7 +17,7 @@ def send_message(recipient_id, message_text, quick_replies=None):
         }
     })
 
-    res = facebook_send(data)
+    res = send(data)
     return res
 
 
@@ -38,11 +38,11 @@ def send_image(recipient_id, image_url):
         }
     })
 
-    res = facebook_send(data)
+    res = send(data)
     return res
 
 
-def facebook_send(data):
+def send(data):
     params = {
         "access_token": os.environ["PAGE_ACCESS_TOKEN"]
     }
