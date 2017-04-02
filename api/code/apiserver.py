@@ -68,6 +68,7 @@ class WorkerTasksResource:
 
             tasks.append({
                 'taskId': task.id,
+                'description': task.description,
                 'contentId': content.id,
                 'content': content.dataJSON,
                 'questions': questions_json
