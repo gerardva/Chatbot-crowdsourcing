@@ -49,7 +49,7 @@ def handle_message_idle(message):
         }
         log(user_states)
 
-        Api.send_image(message["sender_id"], data_json["pictureUrl"])
+        Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
         Facebook.send_message(message["sender_id"], questions[0]["question"])
 
     # Handle initial message
