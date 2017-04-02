@@ -41,7 +41,7 @@ class WorkerTasksResource:
         # start building query
         contents = Content.select()
         if order == "random":
-            contents.order_by(fn.Rand())
+            contents = contents.order_by(fn.Rand())
         if limit:
             try:
                 limit_int = int(limit)
