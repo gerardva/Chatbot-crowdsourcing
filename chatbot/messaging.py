@@ -19,6 +19,9 @@ def handle_message(messaging_event):
     if user_state["state"] == "idle":
         handle_message_idle(message)
 
+    elif user_state["state"] == "given_task_options":
+        handle_message_given_task_options(message)
+
     elif user_state["state"] == "given_task":
         handle_message_given_task(message)
 
@@ -29,8 +32,8 @@ def handle_message(messaging_event):
 
 def handle_message_idle(message):
     # Handle giving task
-    if message.get("coordinates") or message.get("quick_reply_payload") == "task" or message[
-        "text"] == "Give me a task":
+    if message.get("coordinates") or message.get("quick_reply_payload") == "random_task" or \
+                    message["text"] == "Give me a random task":
         task = Api.get_random_task()
         if not task:
             Facebook.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
@@ -52,18 +55,87 @@ def handle_message_idle(message):
         Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
         Facebook.send_message(message["sender_id"], questions[0]["question"])
 
+    # Handle giving multiple tasks
+    elif message.get("quick_reply_payload") == "list_task" or message["text"] == "Give me a list of tasks to choose from":
+        tasks = Api.get_tasks()
+        if not tasks:
+            Facebook.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
+            return
+
+        user_states[message["sender_id"]] = {
+            "state": "given_task_options",
+            "user_id": user_states[message["sender_id"]]["user_id"],
+            "tasks": tasks
+        }
+        log(user_states)
+
+        quick_replies = []
+        mes = "I have " + str(len(tasks)) + " tasks for you: \n"
+        for i, task in enumerate(tasks):
+            mes += "Task " + str(i+1) + ": " + task["description"] + "\n"
+            quick_replies.append({
+                "content_type": "text",
+                "title": "Task " + str(i+1),
+                "payload": "task_" + str(i+1)
+            })
+
+        Facebook.send_message(message["sender_id"], mes, quick_replies)
+
     # Handle initial message
     else:  # str.lower(message["text"]) in greetings:
         quick_replies = [{
             "content_type": "location"
         }, {
             "content_type": "text",
-            "title": "Give me a task",
-            "payload": "task"
+            "title": "Give me a random task",
+            "payload": "random_task"
+        }, {
+            "content_type": "text",
+            "title": "Give me a list of tasks to choose from",
+            "payload": "list_task"
         }]
 
         Facebook.send_message(message["sender_id"], "What's up? I can give you a task, but if you send your location "
-                                           "I can give you even cooler tasks.", quick_replies)
+                                                    "I can give you even cooler tasks.", quick_replies)
+
+
+def handle_message_given_task_options(message):
+    chosen_task_id = -1
+    if message.get("quick_reply_payload"):
+        try:
+            chosen_task_id = int(message["quick_reply_payload"][5:])
+        except:
+            pass
+    else:
+        try:
+            chosen_task_id = int(message["text"][5:])
+        except:
+            pass
+
+    if chosen_task_id == -1:
+        Facebook.send_message(message["sender_id"], "I did not understand your chose of task")
+        return
+
+    tasks = user_states[message["sender_id"]]["tasks"]
+    chosen_task = tasks[chosen_task_id - 1]
+    questions = chosen_task["questions"]
+    data_json = json.loads(chosen_task["content"])
+
+    log(chosen_task)
+
+    # TODO: Duplicate code
+    user_states[message["sender_id"]] = {
+        "state": "given_task",
+        "user_id": user_states[message["sender_id"]]["user_id"],
+        "task_id": chosen_task["taskId"],
+        "questions": questions,
+        "current_question": 0,
+        "content_id": chosen_task["contentId"]
+    }
+
+    Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
+    Facebook.send_message(message["sender_id"], questions[0]["question"])
+
 
 def handle_message_given_task(message):
     if message["text"] == "Give me a task":
