@@ -7,8 +7,7 @@ user_states = {}
 greetings = {"hi", "hey", "hello", "greetings"}
 
 
-def handle_message(messaging_event):
-    message = construct_message(messaging_event)
+def handle_message(message):
 
     # If we haven't seen the user before, check if the user is registered
     if user_states.get(message["sender_id"]) is None:
@@ -51,7 +50,7 @@ def handle_message_idle(message):
             "content_id": task["contentId"]
         }
         log(user_states)
-
+        Facebook.send_postback(message["sender_id"], "Cancel task", "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "cancel_task")
         Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
         Facebook.send_message(message["sender_id"], questions[0]["question"])
 
@@ -132,7 +131,7 @@ def handle_message_given_task_options(message):
         "current_question": 0,
         "content_id": chosen_task["contentId"]
     }
-
+    Facebook.send_postback(message["sender_id"], "Cancel task", "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "cancel_task")
     Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
     Facebook.send_message(message["sender_id"], questions[0]["question"])
 
@@ -143,6 +142,16 @@ def handle_message_given_task(message):
         return
 
     user_state = user_states[message["sender_id"]]
+
+    if message.get("postback") == "cancel_task" or message["text"] == "Cancel":
+        user_states[message["sender_id"]] = {
+            "state": "idle",
+            "user_id": user_state["user_id"]
+        }
+        Facebook.send_message(message["sender_id"], "Task cancelled!")
+        handle_message_idle(message)
+        return
+
     current_question = user_state["current_question"]
     questions = user_state["questions"]
     answer_type = questions[current_question]["answerType"]
@@ -186,13 +195,21 @@ def handle_message_given_task(message):
         Facebook.send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
         Facebook.send_message(message["sender_id"], questions[current_question + 1]["question"])
 
+def construct_postback_message(messaging_event):
+    message = {}
+
+    message["sender_id"] = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
+    message["text"] = ""
+    message["postback"] = messaging_event["postback"].get("payload", "")
+
+    handle_message(message)
 
 def construct_message(messaging_event):
     message = {}
 
     message["sender_id"] = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
 
-    message["text"] = messaging_event["message"].get("text", "")
+    message["text"] = messaging_event.get("message").get("text", "")
 
     quick_reply = messaging_event["message"].get("quick_reply")
     message["quick_reply_payload"] = quick_reply["payload"] if quick_reply else None
@@ -206,7 +223,7 @@ def construct_message(messaging_event):
         if attachment_type == "image":
             message["image"] = attachment["payload"]["url"]
 
-    return message
+    handle_message(message)
 
 
 def get_user(sender_id):

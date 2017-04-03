@@ -35,15 +35,15 @@ class ChatbotResource:
                 for messaging_event in entry["messaging"]:
 
                     if messaging_event.get("message"):  # someone sent us a message
-                        Messaging.handle_message(messaging_event)
+                        Messaging.construct_message(messaging_event)
+
+                    if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
+                        Messaging.construct_postback_message(messaging_event)
 
                     if messaging_event.get("delivery"):  # delivery confirmation
                         pass
 
                     if messaging_event.get("optin"):  # optin confirmation
-                        pass
-
-                    if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
                         pass
 
         resp.status = falcon.HTTP_200

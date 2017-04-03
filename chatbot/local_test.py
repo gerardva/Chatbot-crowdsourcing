@@ -13,11 +13,13 @@ def main(user=None):
     if user == None:
         user = users(str.lower(input("Who are you? (enter first letter of your name) ")))
 
-    mode = input("What's your message? You can also send (L)ocation or (I)mage ")
+    mode = input("What's your message? You can also send (L)ocation, (I)mage or (C)ancel postback button ")
     if mode.lower() == "l":
         send_location(user)
     elif mode.lower() == "i":
         send_image(user)
+    elif mode.lower() == "c":
+        send_cancel_postback(user)
     else:
         send_message(mode, user)
 
@@ -52,6 +54,33 @@ def send_image(user):
                    ]
                }
            ]
+         })
+    post(data)
+
+def send_cancel_postback(user):
+    timestamp = int(time.time())
+    data = json.dumps(
+        {"object": "page",
+         "entry": [
+             {
+                 "messaging": [
+                     {
+                         "sender": {
+                             "id": user
+                         },
+                         "recipient": {
+                             "id": "1849085282000551"
+                         },
+                         "timestamp": timestamp,
+                         "postback": {
+                             "payload": "cancel_task"
+                         }
+                     }
+                 ],
+                 "id": "1849085282000551",
+                 "time": timestamp
+             }
+         ]
          })
     post(data)
 
