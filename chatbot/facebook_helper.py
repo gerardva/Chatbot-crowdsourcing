@@ -20,6 +20,34 @@ def send_message(recipient_id, message_text, quick_replies=None):
     res = send(data)
     return res
 
+def send_postback(recipient_id, message_text, button_title, payload):
+    log("sending postback button to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
+
+    data = json.dumps({
+        "recipient": {
+            "id": recipient_id
+        },
+        "message": {
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    "template_type": "button",
+                    "text": message_text,
+                    "buttons": [
+                        {
+                            "type": "postback",
+                            "title": button_title,
+                            "payload": payload
+                        }
+                    ]
+                }
+            }
+        }
+    })
+
+    res = send(data)
+    return res
+
 
 def send_image(recipient_id, image_url):
     log("sending image to {recipient}: {image}".format(recipient=recipient_id, image=image_url))
