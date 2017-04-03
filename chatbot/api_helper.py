@@ -36,6 +36,15 @@ def get_random_task():
     return task
 
 
+def get_tasks():
+    res = call_api("GET", "/worker/tasks?order=random&limit=3")
+
+    if not res:
+        return False
+
+    return res
+
+
 def post_answer(answer, user_id, question_id, content_id):
     data = {
         "answer": answer,

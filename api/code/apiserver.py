@@ -41,7 +41,7 @@ class WorkerTasksResource:
         # start building query
         contents = Content.select()
         if order == "random":
-            contents.order_by(fn.Rand())
+            contents = contents.order_by(fn.Rand())
         if limit:
             try:
                 limit_int = int(limit)
@@ -68,6 +68,7 @@ class WorkerTasksResource:
 
             tasks.append({
                 'taskId': task.id,
+                'description': task.description,
                 'contentId': content.id,
                 'content': content.dataJSON,
                 'questions': questions_json
