@@ -20,7 +20,7 @@ def send_message(recipient_id, message_text, quick_replies=None):
     res = send(data)
     return res
 
-def send_postback(recipient_id, button_title, message_text, payload):
+def send_postback(recipient_id, message_text, button_title, payload):
     log("sending postback button to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
 
     data = json.dumps({

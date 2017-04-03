@@ -58,7 +58,7 @@ def handle_message_idle(message):
             "content_id": task["contentId"]
         }
         log(user_states)
-        Facebook.send_postback(message["sender_id"], "Cancel task", "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "cancel_task")
+        Facebook.send_postback(message["sender_id"], "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "Cancel task", "cancel_task")
         Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
         Facebook.send_message(message["sender_id"], questions[0]["question"])
 
@@ -139,7 +139,7 @@ def handle_message_given_task_options(message):
         "current_question": 0,
         "content_id": chosen_task["contentId"]
     }
-    Facebook.send_postback(message["sender_id"], "Cancel task", "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "cancel_task")
+    Facebook.send_postback(message["sender_id"], "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "Cancel task", "cancel_task")
     Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
     Facebook.send_message(message["sender_id"], questions[0]["question"])
 
