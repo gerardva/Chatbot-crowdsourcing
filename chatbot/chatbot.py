@@ -35,10 +35,10 @@ class ChatbotResource:
                 for messaging_event in entry["messaging"]:
 
                     if messaging_event.get("message"):  # someone sent us a message
-                        Messaging.construct_message(messaging_event)
+                        Messaging.handle_text_message(messaging_event)
 
                     if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
-                        Messaging.construct_postback_message(messaging_event)
+                        Messaging.handle_postback_message(messaging_event)
 
                     if messaging_event.get("delivery"):  # delivery confirmation
                         pass

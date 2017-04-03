@@ -7,6 +7,14 @@ user_states = {}
 greetings = {"hi", "hey", "hello", "greetings"}
 
 
+def handle_postback_message(messaging_event):
+    message = construct_postback_message(messaging_event)
+    handle_message(message)
+
+def handle_text_message(messaging_event):
+    message = construct_message(messaging_event)
+    handle_message(message)
+
 def handle_message(message):
 
     # If we haven't seen the user before, check if the user is registered
@@ -202,7 +210,7 @@ def construct_postback_message(messaging_event):
     message["text"] = ""
     message["postback"] = messaging_event["postback"].get("payload", "")
 
-    handle_message(message)
+    return message
 
 def construct_message(messaging_event):
     message = {}
@@ -223,7 +231,7 @@ def construct_message(messaging_event):
         if attachment_type == "image":
             message["image"] = attachment["payload"]["url"]
 
-    handle_message(message)
+    return message
 
 
 def get_user(sender_id):
