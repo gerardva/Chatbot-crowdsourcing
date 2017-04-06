@@ -18,6 +18,8 @@ class ApiIntegrationTest(TestCase):
             self.get_task()
         with self.subTest(3):
             self.post_answer()
+        with self.subTest(4):
+            self.post_type_3_task()
 
     def create_new_user(self):
         r = requests.get('http://localhost:5000/worker/users')
@@ -30,10 +32,26 @@ class ApiIntegrationTest(TestCase):
         r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
             'userId': self.userId,
             'description': 'annotation of receipts',
-            'dataLocation': {'longitude': 0.0,
-                             'latitude': 0.0},
-            'data': [
-                {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}
+            'content': [
+                {'data': {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}}
+            ],
+            'questionRows': [
+                {'question': 'What company is this receipt from?',
+                 'answerType': 'plaintext'},
+                {'question': 'What is the address of this company?',
+                 'answerType': 'plaintext'}
+            ]
+        }))
+
+        print(r.text)
+
+    def post_type_3_task(self):
+        r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
+            'userId': self.userId,
+            'description': 'annotation of receipts',
+            'content': [
+                {'location': {'longitude': 0.0,
+                              'latitude': 0.0}, }
             ],
             'questionRows': [
                 {'question': 'What company is this receipt from?',
