@@ -61,7 +61,7 @@ class WorkerTasksResource:
                     'questionId': question.id,
                     'index': question.index,
                     'question': question.question,
-                    'answerType': question.answerType
+                    'answerSpecification': question.answerSpecificationJSON
                 })
 
             task = content.taskId
@@ -92,10 +92,10 @@ class RequesterTasksResource:
 
         for index, question_json in enumerate(task_as_json['questionRows']):
             question_string = question_json['question']
-            answer_type = question_json['answerType']
+            answer_specification = question_json['answerSpecification']
             new_question = Question.create(index=index,
                                            question=question_string,
-                                           answerType=answer_type,
+                                           answerSpecificationJSON=json.dumps(answer_specification),
                                            taskId=task.id)
             new_question.save()
 

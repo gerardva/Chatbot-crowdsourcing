@@ -162,7 +162,7 @@ def handle_message_given_task(message):
 
     current_question = user_state["current_question"]
     questions = user_state["questions"]
-    answer_type = questions[current_question]["answerType"]
+    answer_type = questions[current_question]["answerSpecification"]["type"]
 
     answer = None
     if answer_type == "plaintext":
