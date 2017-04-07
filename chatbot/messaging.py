@@ -49,18 +49,7 @@ def handle_message_idle(message):
         questions = task["questions"]
         data_json = json.loads(task["content"])
 
-        user_states[message["sender_id"]] = {
-            "state": "given_task",
-            "user_id": user_states[message["sender_id"]]["user_id"],
-            "task_id": task["taskId"],
-            "questions": questions,
-            "current_question": 0,
-            "content_id": task["contentId"]
-        }
-        log(user_states)
-        Facebook.send_postback(message["sender_id"], "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "Cancel task", "cancel_task")
-        Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
-        Facebook.send_message(message["sender_id"], questions[0]["question"])
+        send_task(data_json, questions, message["sender_id"], task)
 
     # Handle giving multiple tasks
     elif message.get("quick_reply_payload") == "list_task" or message["text"] == "Give me a list of tasks to choose from":
@@ -129,20 +118,27 @@ def handle_message_given_task_options(message):
     data_json = json.loads(chosen_task["content"])
 
     log(chosen_task)
+    send_task(data_json, questions, message["sender_id"], chosen_task)
 
-    # TODO: Duplicate code
-    user_states[message["sender_id"]] = {
+
+def send_task(data_json, questions, sender_id, task):
+    user_states[sender_id] = {
         "state": "given_task",
-        "user_id": user_states[message["sender_id"]]["user_id"],
-        "task_id": chosen_task["taskId"],
+        "user_id": user_states[sender_id]["user_id"],
+        "task_id": task["taskId"],
         "questions": questions,
         "current_question": 0,
-        "content_id": chosen_task["contentId"]
+        "content_id": task["contentId"]
     }
-    Facebook.send_postback(message["sender_id"], "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "Cancel task", "cancel_task")
-    Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
-    Facebook.send_message(message["sender_id"], questions[0]["question"])
-
+    Facebook.send_postback(sender_id,
+                           "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.",
+                           "Cancel task", "cancel_task")
+    if data_json.get("pictureUrl") is not None:
+        Facebook.send_image(sender_id, data_json["pictureUrl"])
+    if data_json.get("question") is not None and data_json.get("answer") is not None:
+        Facebook.send_message(sender_id, "Customer tweet:\n" + data_json["question"])
+        Facebook.send_message(sender_id, "Webcare answer:\n" + data_json["answer"])
+    Facebook.send_message(sender_id, questions[0]["question"])
 
 def handle_message_given_task(message):
     if message["text"] == "Give me a task":
