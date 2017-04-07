@@ -11,6 +11,7 @@ class BaseModel(Model):
 class User(BaseModel):
     id = PrimaryKeyField()
     score = FloatField(default=0.0)
+    facebookId = TextField()
 
 
 class Task(BaseModel):
@@ -33,7 +34,7 @@ class Content(BaseModel):
     taskId = ForeignKeyField(Task)
 
 class Location(BaseModel):
-    contentId = ForeignKeyField(Content, primary_key=True)
+    contentId = ForeignKeyField(Content, primary_key=True, related_name="location")
     longitude = FloatField()
     latitude = FloatField()
 
