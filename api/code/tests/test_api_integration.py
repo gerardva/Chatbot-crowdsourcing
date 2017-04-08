@@ -31,7 +31,7 @@ class ApiIntegrationTest(TestCase):
     def post_task(self):
         r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
             'userId': self.userId,
-            'description': 'annotation of receipts',
+            'description': 'Annotation of receipts',
             'content': [
                 {'data': {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}}
             ],
@@ -48,15 +48,15 @@ class ApiIntegrationTest(TestCase):
     def post_type_3_task(self):
         r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
             'userId': self.userId,
-            'description': 'annotation of receipts',
+            'description': 'Taking picture of landmark',
             'content': [
-                {'location': {'longitude': 0.0,
-                              'latitude': 0.0}, }
+                {'location': {'longitude': 52.007545,
+                              'latitude': 4.3565297}, }
             ],
             'questionRows': [
-                {'question': 'What company is this receipt from?',
-                 'answerType': 'plaintext'},
-                {'question': 'What is the address of this company?',
+                {'question': 'Please take a picture of Delft station.',
+                 'answerType': 'image'},
+                {'question': 'Please walk to the bike cellar. How many available bike spaces are there, according to the signs?',
                  'answerType': 'plaintext'}
             ]
         }))
