@@ -39,9 +39,34 @@ class WorkerTasksResource:
         limit = req.get_param("limit")
         order = req.get_param("order")
         # start building query
-        contents = Content.select()
+        contents = None
         if order == "random":
-            contents = contents.order_by(fn.Rand())
+            contents = Content.select().order_by(fn.Rand())
+        elif order == "location":
+            # does not use circle dist, but square with sides of 2 x maxDist
+            max_dist = float(req.get_param("range"))
+            longitude = float(req.get_param("longitude"))
+            latitude = float(req.get_param("latitude"))
+
+            maxLongitude = longitude + max_dist
+            minLongitude = longitude - max_dist
+            maxLatitude = latitude + max_dist
+            minLatitude = latitude - max_dist
+            print('minlong'+str(minLongitude))
+            print('maxlong'+str(maxLongitude))
+            # get location within square of sides r with long and lat as center, randomize these points
+            # (for limiting alter on for example)
+            contents = Content.select(Content, Location).join(Location).where(
+                (Location.longitude >= minLongitude) &
+                (Location.longitude <= maxLongitude) &
+                (Location.latitude >= minLatitude) &
+                (Location.latitude <= maxLatitude)).order_by(fn.rand())
+
+        if contents is None:
+            # when no contents exist, nothing can be returned
+            resp.body = {}
+            return
+
         if limit:
             try:
                 limit_int = int(limit)
@@ -66,21 +91,49 @@ class WorkerTasksResource:
 
             task = content.taskId
 
-            tasks.append({
+            task_data = {
                 'taskId': task.id,
                 'description': task.description,
                 'contentId': content.id,
                 'content': content.dataJSON,
                 'questions': questions_json
-            })
+            }
+
+            try:
+                # TODO: i believe kilian already made the relation 1 to 0..1, so then the .first() might be redundant.
+                location = content.location.get()
+                task_data['location'] = {
+                    'latitude': location.latitude,
+                    'longitude': location.longitude
+                }
+            except AttributeError:
+                # if no location is present, that is fine
+                print('no location found, so not adding to content for contentId '+str(content.id))
+
+            tasks.append(task_data)
         resp.body = json.dumps(tasks)
 
-
 class WorkerUsersResource:
-    def on_get(self, req, resp):
-        user = User.create()
-        resp.body = json.dumps({'userId': user.id})
+    def on_post(self, req, resp):
+        req_as_json = json.loads(req.stream.read().decode('utf-8'))
+        facebook_id = req_as_json['facebookId']
 
+        if facebook_id:
+            try:
+                user = User.select().where(User.facebookId == facebook_id).first()
+            except DoesNotExist:
+                new_user = User.create(facebookId=facebook_id)
+                new_user.save()
+                user = User.select().where(User.facebookId == facebook_id).first()
+
+            resp.body = json.dumps({'userId': user.id})
+        else:
+            resp.body = json.dumps({'error': 'no facebook id is provided, other platforms are not supported at this time.'})
+
+
+    # def on_get(self, req, resp):
+    #     user = User.create()
+    #     resp.body = json.dumps({'userId': user.id})
 
 class RequesterTasksResource:
     def on_post(self, req, resp):
