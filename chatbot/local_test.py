@@ -1,6 +1,7 @@
 import requests
 import json
 import time
+import sys
 
 HOST = 'localhost'
 PORT = '5000'
@@ -13,13 +14,15 @@ def main(user=None):
     if user == None:
         user = users(str.lower(input("Who are you? (enter first letter of your name) ")))
 
-    mode = input("What's your message? You can also send (L)ocation, (I)mage or (C)ancel postback button ")
+    mode = input("What's your message? You can also send (L)ocation, (I)mage or (C)ancel postback button, or (Q)uit ")
     if mode.lower() == "l":
         send_location(user)
     elif mode.lower() == "i":
         send_image(user)
     elif mode.lower() == "c":
         send_cancel_postback(user)
+    elif mode.lower() == "q":
+        sys.exit()
     else:
         send_message(mode, user)
 
