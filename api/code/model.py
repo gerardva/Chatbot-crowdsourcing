@@ -29,13 +29,15 @@ class Question(BaseModel):
 
 class Content(BaseModel):
     id = PrimaryKeyField()
-    dataJSON = TextField()
+    dataJSON = TextField(null=True)
     taskId = ForeignKeyField(Task)
+
 
 class Location(BaseModel):
     contentId = ForeignKeyField(Content, primary_key=True)
     longitude = FloatField()
     latitude = FloatField()
+
 
 class Answer(BaseModel):
     answer = TextField()
