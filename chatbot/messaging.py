@@ -264,6 +264,7 @@ def construct_message(messaging_event):
 
     return message
 
+
 def construct_options_quick_replies(options):
     quick_replies = []
     for option in options:
@@ -276,9 +277,9 @@ def construct_options_quick_replies(options):
 
     return quick_replies
 
+
 def get_user(sender_id):
-    # TODO: Register user if not registered yet
-    user = Api.call_api("GET", "/worker/users");
+    user = Api.get_user(sender_id)
     if not user:
         return False
 

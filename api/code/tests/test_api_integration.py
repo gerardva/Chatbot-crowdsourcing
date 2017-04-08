@@ -17,16 +17,20 @@ class ApiIntegrationTest(TestCase):
         with self.subTest(2):
             self.get_task()
         with self.subTest(3):
-            self.post_answer()
+            self.get_location_based_task()
         with self.subTest(4):
-            self.post_type_3_task()
+            self.post_answer()
         with self.subTest(5):
+            self.post_type_3_task()
+        with self.subTest(6):
             self.post_task_with_option_answer()
 
     def create_new_user(self):
-        r = requests.get('http://localhost:5000/worker/users')
+        r = requests.post('http://localhost:5000/worker/users', data=json.dumps({
+            'facebookId': 'this is totally a legit facebook id'
+        }))
 
-        print(r.text)
+        print('returned user json: ' + r.text)
         r_as_json = json.loads(r.text)
         self.userId = r_as_json['userId']
 
@@ -90,6 +94,14 @@ class ApiIntegrationTest(TestCase):
         r_as_json = json.loads(r.text)[0]
         self.contentId = r_as_json['contentId']
         self.questionId = r_as_json['questions'][0]['questionId']
+
+    def get_location_based_task(self):
+        r = requests.get('http://localhost:5000/worker/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
+
+        print('location based task: '+r.text)
+        #r_as_json = json.loads(r.text)[0]
+        #self.contentId = r_as_json['contentId']
+        #self.questionId = r_as_json['questions'][0]['questionId']
 
     def post_answer(self):
         print('userId: ' + str(self.userId))
