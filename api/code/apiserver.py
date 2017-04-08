@@ -86,7 +86,7 @@ class WorkerTasksResource:
                     'questionId': question.id,
                     'index': question.index,
                     'question': question.question,
-                    'answerType': question.answerType
+                    'answerSpecification': question.answerSpecificationJSON
                 })
 
             task = content.taskId
@@ -137,26 +137,27 @@ class WorkerUsersResource:
 
 class RequesterTasksResource:
     def on_post(self, req, resp):
-        print("task post called!")
-        task_as_json = json.loads(req.stream.read().decode('utf-8'))
-        task = Task.create(userId=task_as_json['userId'],
-                           description=task_as_json['description'])
+        request_dict = json.loads(req.stream.read().decode('utf-8'))
+        task = Task.create(userId=request_dict['userId'],
+                           description=request_dict['description'])
         task.save()
 
-        for index, question_json in enumerate(task_as_json['questionRows']):
+        for index, question_json in enumerate(request_dict['questionRows']):
             question_string = question_json['question']
-            answer_type = question_json['answerType']
+            answer_specification = question_json['answerSpecification']
             new_question = Question.create(index=index,
                                            question=question_string,
-                                           answerType=answer_type,
+                                           answerSpecificationJSON=json.dumps(answer_specification),
                                            taskId=task.id)
             new_question.save()
 
-        for i, content in enumerate(task_as_json['data']):
-            content_id = Content.create(dataJSON=json.dumps(task_as_json['data'][i]), taskId=task.id)
-
-        if 'dataLocation' in task_as_json:
-            add_location(content_id, task_as_json['dataLocation'])
+        for content in request_dict['content']:
+            if 'data' in content:
+                content_id = Content.create(dataJSON=json.dumps(content['data']), taskId=task.id)
+            else:
+                content_id = Content.create(taskId=task.id)
+            if 'location' in content:
+                add_location(content_id, content['location'])
 
         resp.body = json.dumps({'taskId': task.id})
 

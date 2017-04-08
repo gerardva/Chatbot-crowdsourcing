@@ -47,20 +47,9 @@ def handle_message_idle(message):
             return
 
         questions = task["questions"]
-        data_json = json.loads(task["content"])
+        task_content = task["content"]
 
-        user_states[message["sender_id"]] = {
-            "state": "given_task",
-            "user_id": user_states[message["sender_id"]]["user_id"],
-            "task_id": task["taskId"],
-            "questions": questions,
-            "current_question": 0,
-            "content_id": task["contentId"]
-        }
-        log(user_states)
-        Facebook.send_postback(message["sender_id"], "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "Cancel task", "cancel_task")
-        Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
-        Facebook.send_message(message["sender_id"], questions[0]["question"])
+        send_task(task_content, questions, message["sender_id"], task)
 
     # Handle giving multiple tasks
     elif message.get("quick_reply_payload") == "list_task" or message["text"] == "Give me a list of tasks to choose from":
@@ -126,22 +115,40 @@ def handle_message_given_task_options(message):
     tasks = user_states[message["sender_id"]]["tasks"]
     chosen_task = tasks[chosen_task_id - 1]
     questions = chosen_task["questions"]
-    data_json = json.loads(chosen_task["content"])
+    task_content = chosen_task["content"]
 
     log(chosen_task)
+    send_task(task_content, questions, message["sender_id"], chosen_task)
 
-    # TODO: Duplicate code
-    user_states[message["sender_id"]] = {
+
+def send_task(task_content, questions, sender_id, task):
+    user_states[sender_id] = {
         "state": "given_task",
-        "user_id": user_states[message["sender_id"]]["user_id"],
-        "task_id": chosen_task["taskId"],
+        "user_id": user_states[sender_id]["user_id"],
+        "task_id": task["taskId"],
         "questions": questions,
         "current_question": 0,
-        "content_id": chosen_task["contentId"]
+        "content_id": task["contentId"]
     }
-    Facebook.send_postback(message["sender_id"], "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.", "Cancel task", "cancel_task")
-    Facebook.send_image(message["sender_id"], data_json["pictureUrl"])
-    Facebook.send_message(message["sender_id"], questions[0]["question"])
+    Facebook.send_postback(sender_id,
+                           "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.",
+                           "Cancel task", "cancel_task")
+
+    data_json = json.loads(task_content) if task_content else {}
+
+    if data_json.get("pictureUrl") is not None:
+        Facebook.send_image(sender_id, data_json["pictureUrl"])
+
+    if data_json.get("question") is not None and data_json.get("answer") is not None:
+        Facebook.send_message(sender_id, "Customer tweet:\n" + data_json["question"])
+        Facebook.send_message(sender_id, "Webcare answer:\n" + data_json["answer"])
+
+    quick_replies = None
+    answer_specification = json.loads(questions[0]["answerSpecification"])
+    if answer_specification["type"] == "option":
+        quick_replies = construct_options_quick_replies(answer_specification["options"])
+
+    Facebook.send_message(sender_id, questions[0]["question"], quick_replies)
 
 
 def handle_message_given_task(message):
@@ -162,7 +169,9 @@ def handle_message_given_task(message):
 
     current_question = user_state["current_question"]
     questions = user_state["questions"]
-    answer_type = questions[current_question]["answerType"]
+
+    answer_specification = json.loads(questions[current_question]["answerSpecification"])
+    answer_type = answer_specification["type"]
 
     answer = None
     if answer_type == "plaintext":
@@ -172,12 +181,27 @@ def handle_message_given_task(message):
 
         answer = message["text"]
 
-    if answer_type == "image":
+    elif answer_type == "image":
         if not message["image"]:
             Facebook.send_message(message["sender_id"], "I was expecting an image as an answer to this question..")
             return
 
         answer = message["image"]
+
+    elif answer_type == "option":
+        if not message["quick_reply_payload"]:
+            # Check if answer matches any of the answer_options
+            answer_options = answer_specification["options"]
+            if message["text"] not in answer_options:
+                quick_replies = construct_options_quick_replies(answer_options)
+                Facebook.send_message(message["sender_id"],
+                                      "I was expecting one of the options as an answer to this question..",
+                                      quick_replies)
+                return
+
+            answer = message["text"]
+        else:
+            answer = message["quick_reply_payload"]
 
     user_id = user_state["user_id"]
     question_id = questions[current_question]["questionId"]
@@ -200,8 +224,14 @@ def handle_message_given_task(message):
 
     else:
         user_state["current_question"] = current_question + 1
-        Facebook.send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
-        Facebook.send_message(message["sender_id"], questions[current_question + 1]["question"])
+        #Facebook.send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
+
+        quick_replies = None
+        if answer_type == "option":
+            quick_replies = construct_options_quick_replies(answer_specification["options"])
+
+        Facebook.send_message(message["sender_id"], questions[current_question + 1]["question"], quick_replies)
+
 
 def construct_postback_message(messaging_event):
     message = {}
@@ -211,6 +241,7 @@ def construct_postback_message(messaging_event):
     message["postback"] = messaging_event["postback"].get("payload", "")
 
     return message
+
 
 def construct_message(messaging_event):
     message = {}
@@ -233,6 +264,17 @@ def construct_message(messaging_event):
 
     return message
 
+def construct_options_quick_replies(options):
+    quick_replies = []
+    for option in options:
+        quick_reply = {
+            "content_type": "text",
+            "title": option,
+            "payload": option
+        }
+        quick_replies.append(quick_reply)
+
+    return quick_replies
 
 def get_user(sender_id):
     # TODO: Register user if not registered yet

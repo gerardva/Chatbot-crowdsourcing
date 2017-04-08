@@ -24,19 +24,21 @@ class Question(BaseModel):
     id = PrimaryKeyField()
     index = IntegerField()
     question = TextField()
-    answerType = TextField()
+    answerSpecificationJSON = TextField()
     taskId = ForeignKeyField(Task)
 
 
 class Content(BaseModel):
     id = PrimaryKeyField()
-    dataJSON = TextField()
+    dataJSON = TextField(null=True)
     taskId = ForeignKeyField(Task)
+
 
 class Location(BaseModel):
     contentId = ForeignKeyField(Content, primary_key=True, related_name="location")
     longitude = FloatField()
     latitude = FloatField()
+
 
 class Answer(BaseModel):
     answer = TextField()
