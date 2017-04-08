@@ -2,20 +2,18 @@
 
 import os
 import json
+import re
+import requests
 
 from twitter import Api
 
 # URL encoded hashtag character is %23
-SEARCH_QUERY = '%23crowdsourcing'
+SCREEN_NAME = "albertheijn"
 
-CONSUMER_KEY = 'bU8Q4YtVLceidSPnbmzSmzhPa'
-# CONSUMER_KEY = os.getenv("CONSUMER_KEY", None)
-CONSUMER_SECRET = '4fxYRaphMSmj5SYipWDTxij792mw4bi1pvuWcZ1m0DnuCoYUgc'
-# CONSUMER_SECRET = os.getenv("CONSUMER_SECRET", None)
-ACCESS_TOKEN = '237870208-sFckbq7hnXDTVhpmgMosxr0jE1aUs3J2Z9sKKXUO'
-# ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", None)
-ACCESS_TOKEN_SECRET = 'hoSmWLvMhhscPCY6n99qox2P1cdHtXQbz4CTbInQKkk9v'
-# ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET", None)
+CONSUMER_KEY = os.getenv("CONSUMER_KEY", None)
+CONSUMER_SECRET = os.getenv("CONSUMER_SECRET", None)
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", None)
+ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET", None)
 
 api = Api(CONSUMER_KEY,
           CONSUMER_SECRET,
@@ -24,11 +22,41 @@ api = Api(CONSUMER_KEY,
 
 
 def main():
-    with open('output.txt', 'r+') as f:
-        results = api.GetSearch(
-            raw_query="q=" + SEARCH_QUERY + "%20filter%3Aimages&count=100")
-        f.write(str(results))
+    with open('output.txt', 'r+', encoding='utf-8') as f:
+        results = api.GetUserTimeline(screen_name=SCREEN_NAME, count=100)
+        tweets = []
+        i = 1
+        for s in results:
+            print(str(i))
+            i = i+1
+            if s.in_reply_to_status_id is not None:
+                replied_to = api.GetStatus(s.in_reply_to_status_id)
+                isLongConversation = re.search('[0-9]/[0-9]', s.text) or re.search('[0-9]/[0-9]', replied_to.text)
+                if replied_to.in_reply_to_status_id is None and not isLongConversation:
+                    tweet = {
+                        "question": replied_to.text,
+                        "answer": s.text
+                    }
+                    tweets.append(tweet)
+
+        f.write(json.dumps(tweets))
         f.truncate()
+        r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
+        'userId': 2,
+        'description': 'Assess twitter webcare',
+        'dataLocation': {'longitude': 0.0,
+                         'latitude': 0.0},
+        'data': tweets,
+        'questionRows': [
+            {'question': 'Does the original tweet contain a complaint, highlight an issue or something else (if so, elaborate)?',
+             'answerType': 'plaintext'},
+            {'question': 'Do you think this webcare tweet has helped the user with their issue? Type ‘n/a’ if the answer to the previous question was no.',
+             'answerType': 'plaintext'},
+            {'question': 'Do you have any further comments about this webcare tweet?',
+             'answerType': 'plaintext'}
+        ]
+    }))
+    print(str(r.status_code))
 
 
 if __name__ == '__main__':
