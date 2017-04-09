@@ -52,8 +52,6 @@ class WorkerTasksResource:
             minLongitude = longitude - max_dist
             maxLatitude = latitude + max_dist
             minLatitude = latitude - max_dist
-            print('minlong'+str(minLongitude))
-            print('maxlong'+str(maxLongitude))
             # get location within square of sides r with long and lat as center, randomize these points
             # (for limiting alter on for example)
             contents = Content.select(Content, Location).join(Location).where(
@@ -106,7 +104,7 @@ class WorkerTasksResource:
                     'latitude': location.latitude,
                     'longitude': location.longitude
                 }
-            except AttributeError:
+            except DoesNotExist:
                 # if no location is present, that is fine
                 print('no location found, so not adding to content for contentId '+str(content.id))
 
@@ -120,11 +118,11 @@ class WorkerUsersResource:
 
         if facebook_id:
             try:
-                user = User.select().where(User.facebookId == facebook_id).first()
+                user = User.select().where(User.facebookId == facebook_id).get()
             except DoesNotExist:
                 new_user = User.create(facebookId=facebook_id)
                 new_user.save()
-                user = User.select().where(User.facebookId == facebook_id).first()
+                user = User.select().where(User.facebookId == facebook_id).get()
 
             resp.body = json.dumps({'userId': user.id})
         else:
