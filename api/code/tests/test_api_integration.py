@@ -1,10 +1,12 @@
+from api.code.model import *
+from api.code.reviewPipeline import *
 import json
-from unittest import TestCase
-
+import unittest
 import requests
 
 
-class ApiIntegrationTest(TestCase):
+
+class ApiIntegrationTest(unittest.TestCase):
     userId = -1
     contentId = -1
     questionId = -1
@@ -24,6 +26,10 @@ class ApiIntegrationTest(TestCase):
             self.post_type_3_task()
         with self.subTest(6):
             self.post_task_with_option_answer()
+        with self.subTest(7):
+            self.can_not_answer_content()
+        with self.subTest(8):
+            self.make_review_pipeline()
 
     def create_new_user(self):
         r = requests.post('http://localhost:5000/worker/users', data=json.dumps({
@@ -88,10 +94,10 @@ class ApiIntegrationTest(TestCase):
         print(r.text)
 
     def get_task(self):
-        r = requests.get('http://localhost:5000/worker/tasks?order=random&limit=1')
+        r = requests.get('http://localhost:5000/worker/' + str(self.userId) + '/tasks?order=random&limit=1')
 
-        print(r.text)
-        r_as_json = json.loads(r.text)[0]
+        print("get_task: " + r.text)
+        r_as_json = r.json()[0]
         self.contentId = r_as_json['contentId']
         self.questionId = r_as_json['questions'][0]['questionId']
 
@@ -116,3 +122,92 @@ class ApiIntegrationTest(TestCase):
         }))
 
         print(r.text)
+
+    def can_not_answer_content(self):
+        r = requests.post('http://localhost:5000/worker/users', json.dumps({
+            'facebookId': 'legit id 2'
+        }))
+
+        r_as_json = json.loads(r.text)
+
+        other_user_id = r_as_json['userId']
+
+        r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
+            'userId': other_user_id,
+            'description': 'Annotation of receipts',
+            'canNotMake': [
+                [other_user_id]
+            ],
+            'content': [
+                {'data': {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}}
+            ],
+            'questionRows': [
+                {'question': 'What company is this receipt from?',
+                 'answerSpecification': {'type': 'plaintext'}},
+                {'question': 'What is the address of this company?',
+                 'answerSpecification': {'type': 'plaintext'}}
+            ]
+        }))
+
+        r_as_json = json.loads(r.text)
+
+        task_id = r_as_json['taskId']
+        self.task_id = task_id
+        print('\nlooking for taskid '+str(task_id)+'\n')
+
+        r = requests.get('http://localhost:5000/worker/' + str(other_user_id) + '/tasks?order=random')
+
+        r_as_json = json.loads(r.text)
+        found_task = False
+
+        print('\ncan_not_answer_tasks: '+str(len(r_as_json))+'\n')
+
+        for task in r_as_json:
+            if task['taskId'] == task_id:
+                found_task = True
+
+        self.assertFalse(found_task,
+                             'found a task (with just one content) that should have been blocked by CanNotAnswer')
+
+    def make_review_pipeline(self):
+        r = requests.post('http://localhost:5000/worker/users', json.dumps({
+            'facebookId': 'legit id 2'
+        }))
+
+        r_as_json = json.loads(r.text)
+
+        other_user_id = r_as_json['userId']
+
+        # r = requests.get('http://localhost:5000/requester/tasks?taskId='+str(self.task_id))
+        #
+        # r_as_json = json.loads(r.text)
+
+        content_id = Content.get(Content.taskId == self.task_id).id
+        question_id = Question.get(Question.taskId == self.task_id).id
+
+        r = requests.post('http://localhost:5000/worker/' + str(other_user_id) + '/answers', data=json.dumps({
+            'userId': other_user_id,
+            'contentId': content_id,
+            'questionId': question_id,
+            'answer': 'Berghotel Grosse Scheidegg'
+        }))
+
+        rp = ReviewPipeline(self.task_id, 2, self.userId)
+        review_task_id = rp.create_review_task()
+
+        #print('review_task_id'+ str(review_task_id))
+
+        review_contents = Content.select().where(Content.taskId == review_task_id)
+        review_question_id = Question.get(Question.taskId == review_task_id).id
+
+        for content in review_contents:
+            r = requests.post('http://localhost:5000/worker/' + str(other_user_id) + '/answers', data=json.dumps({
+                'userId': other_user_id,
+                'contentId': content.id,
+                'questionId': review_question_id,
+                'answer': 'Yes'
+            }))
+
+        result = rp.get_answers()
+
+        print('\nmake_review_pipeline: ' + json.dumps(result))
