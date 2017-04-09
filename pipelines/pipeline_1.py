@@ -31,31 +31,30 @@ def main():
             i = i+1
             if s.in_reply_to_status_id is not None:
                 replied_to = api.GetStatus(s.in_reply_to_status_id)
-                isLongConversation = re.search('[0-9]/[0-9]', s.text) or re.search('[0-9]/[0-9]', replied_to.text)
-                if replied_to.in_reply_to_status_id is None and not isLongConversation:
-                    tweet = {
-                        "question": replied_to.text,
-                        "answer": s.text
-                    }
+                is_long_conversation = re.search('[0-9]/[0-9]', s.text) or re.search('[0-9]/[0-9]', replied_to.text)
+                if replied_to.in_reply_to_status_id is None and not is_long_conversation:
+                    tweet = {"data": {
+                                "question": replied_to.text,
+                                "answer": s.text
+                    }}
                     tweets.append(tweet)
 
         f.write(json.dumps(tweets))
         f.truncate()
         r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
-        'userId': 2,
-        'description': 'Assess twitter webcare',
-        'dataLocation': {'longitude': 0.0,
-                         'latitude': 0.0},
-        'data': tweets,
-        'questionRows': [
-            {'question': 'Does the original tweet contain a complaint, highlight an issue or something else (if so, elaborate)?',
-             'answerType': 'plaintext'},
-            {'question': 'Do you think this webcare tweet has helped the user with their issue? Type ‘n/a’ if the answer to the previous question was no.',
-             'answerType': 'plaintext'},
-            {'question': 'Do you have any further comments about this webcare tweet?',
-             'answerType': 'plaintext'}
-        ]
-    }))
+            'userId': 2,
+            'description': 'Assess twitter webcare',
+            'content': tweets,
+            'questionRows': [
+                {'question': 'Does the original tweet contain a complaint, highlight an issue or something else (if so, elaborate)?',
+                 'answerSpecification': {'type': 'plaintext'}},
+                {'question': 'Do you think this webcare tweet has helped the user with their issue? Type ‘n/a’ if the answer to the previous question was no.',
+                 'answerSpecification': {'type': 'plaintext'}},
+                {'question': 'Do you have any further comments about this webcare tweet?',
+                 'answerSpecification': {'type': 'plaintext'}}
+            ]
+        }))
+
     print(str(r.status_code))
 
 
