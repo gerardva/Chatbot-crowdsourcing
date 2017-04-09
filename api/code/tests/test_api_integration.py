@@ -61,9 +61,9 @@ class ApiIntegrationTest(TestCase):
             ],
             'questionRows': [
                 {'question': 'Please take a picture of Delft station.',
-                 'answerType': 'image'},
+                 'answerSpecification': {'type': 'image'}},
                 {'question': 'Please walk to the bike cellar. How many available bike spaces are there, according to the signs?',
-                 'answerType': 'plaintext'}
+                 'answerSpecification': {'type': 'plaintext'}}
             ]
         }))
 
@@ -75,8 +75,8 @@ class ApiIntegrationTest(TestCase):
             'description': 'annotation of receipts',
             'dataLocation': {'longitude': 0.0,
                              'latitude': 0.0},
-            'data': [
-                {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}
+            'content': [
+                {'data': {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}}
             ],
             'questionRows': [
                 {'question': 'What company is this receipt from?',
