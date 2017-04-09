@@ -60,18 +60,6 @@ class WorkerTasksResource:
                 (Location.latitude >= min_latitude) &
                 (Location.latitude <= max_latitude)).order_by(fn.rand())
 
-        # todo should be done database side
-        # for content in contents:
-        #     try:
-        #         #print('content_id: '+str(content.id)+', user_id: '+str(user_id))
-        #         can_not_answer = CanNotAnswer.get((CanNotAnswer.contentId == content.id) & (CanNotAnswer.userId == user_id))
-        #         print('length '+str(contents.count()))
-        #         #contents = contents.select(Contents.contentId.not_in(can_not_answer.contentId))
-        #         print('length ' + str(contents.count()))
-        #     except DoesNotExist:
-        #         # no filtering of content needed
-        #         pass
-
         contents = contents.join(CanNotAnswer).where(CanNotAnswer.userId != user_id)
 
         if contents is None or len(contents) == 0:
@@ -141,11 +129,6 @@ class WorkerUsersResource:
             resp.body = json.dumps({'userId': user.id})
         else:
             resp.body = json.dumps({'error': 'no facebook id is provided, other platforms are not supported at this time.'})
-
-
-    # def on_get(self, req, resp):
-    #     user = User.create()
-    #     resp.body = json.dumps({'userId': user.id})
 
 class RequesterTasksResource:
     def on_get(self, req, resp):
