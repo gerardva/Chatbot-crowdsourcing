@@ -22,7 +22,7 @@ api = Api(CONSUMER_KEY,
 
 
 def main():
-    with open('output.txt', 'r+', encoding='utf-8') as f:
+    #with open('output.txt', 'r+', encoding='utf-8') as f:
         results = api.GetUserTimeline(screen_name=SCREEN_NAME, count=100)
         tweets = []
         i = 1
@@ -30,17 +30,19 @@ def main():
             print(str(i))
             i = i+1
             if s.in_reply_to_status_id is not None:
-                replied_to = api.GetStatus(s.in_reply_to_status_id)
-                is_long_conversation = re.search('[0-9]/[0-9]', s.text) or re.search('[0-9]/[0-9]', replied_to.text)
-                if replied_to.in_reply_to_status_id is None and not is_long_conversation:
-                    tweet = {"data": {
-                                "question": replied_to.text,
-                                "answer": s.text
-                    }}
-                    tweets.append(tweet)
-
-        f.write(json.dumps(tweets))
-        f.truncate()
+                try:
+                    replied_to = api.GetStatus(s.in_reply_to_status_id)
+                    is_long_conversation = re.search('[0-9]/[0-9]', s.text) or re.search('[0-9]/[0-9]', replied_to.text)
+                    if replied_to.in_reply_to_status_id is None and not is_long_conversation:
+                        tweet = {"data": {
+                                    "question": replied_to.text,
+                                    "answer": s.text
+                        }}
+                        tweets.append(tweet)
+                except:
+                    print("Error at " + str(i))
+        #f.write(json.dumps(tweets))
+        #f.truncate()
         r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
             'userId': 2,
             'description': 'Assess twitter webcare',
@@ -55,7 +57,7 @@ def main():
             ]
         }))
 
-    print(str(r.status_code))
+        print(str(r.status_code))
 
 
 if __name__ == '__main__':

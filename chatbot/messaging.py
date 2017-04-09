@@ -226,6 +226,8 @@ def handle_message_given_task(message):
         user_state["current_question"] = current_question + 1
         #Facebook.send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
 
+        answer_specification = json.loads(questions[current_question + 1]["answerSpecification"])
+        answer_type = answer_specification["type"]
         quick_replies = None
         if answer_type == "option":
             quick_replies = construct_options_quick_replies(answer_specification["options"])

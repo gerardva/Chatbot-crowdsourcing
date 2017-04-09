@@ -1,7 +1,7 @@
 import requests
 from chatbot.logger import log
 
-api_url = "https://fathomless-cove-38602.herokuapp.com"  # no trailing slash
+api_url = "http://localhost:5000"  # no trailing slash
 api_methods = {
     'GET': requests.get,
     'POST': requests.post,
