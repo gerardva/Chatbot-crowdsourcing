@@ -55,9 +55,9 @@ class WorkerTasksResource:
             # get location within square of sides r with long and lat as center, randomize these points
             # (for limiting alter on for example)
             contents = Content.select(Content, Location).join(Location).where(
-                (Location.longitude >= min_longitude) and
-                (Location.longitude <= max_longitude) and
-                (Location.latitude >= min_latitude) and
+                (Location.longitude >= min_longitude) &
+                (Location.longitude <= max_longitude) &
+                (Location.latitude >= min_latitude) &
                 (Location.latitude <= max_latitude)).order_by(fn.rand())
 
         contents = contents.join(CanNotAnswer).where(CanNotAnswer.userId != user_id)
