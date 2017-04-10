@@ -64,7 +64,7 @@ class WorkerTasksResource:
 
         if contents is None or len(contents) == 0:
             # when no contents exist, nothing can be returned
-            resp.body = {}
+            resp.body = json.dumps({})
             return
 
         if limit:
