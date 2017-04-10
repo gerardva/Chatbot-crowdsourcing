@@ -1,7 +1,12 @@
 import json
+import uuid
 from unittest import TestCase
 
 import requests
+
+
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
 class ApiIntegrationTest(TestCase):
@@ -24,10 +29,14 @@ class ApiIntegrationTest(TestCase):
             self.post_type_3_task()
         with self.subTest(6):
             self.post_task_with_option_answer()
+        with self.subTest(7):
+            self.get_worker()
 
     def create_new_user(self):
+        # use UUID as facebookId, so multiple runs of tests don't fail due to updating the same user
+        facebook_id = str(uuid.uuid1())
         r = requests.post('http://localhost:5000/worker/users', data=json.dumps({
-            'facebookId': 'this is totally a legit facebook id'
+            'facebookId': facebook_id
         }))
 
         print('returned user json: ' + r.text)
@@ -98,21 +107,30 @@ class ApiIntegrationTest(TestCase):
     def get_location_based_task(self):
         r = requests.get('http://localhost:5000/worker/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
 
-        print('location based task: '+r.text)
-        #r_as_json = json.loads(r.text)[0]
-        #self.contentId = r_as_json['contentId']
-        #self.questionId = r_as_json['questions'][0]['questionId']
+        print('location based task: ' + r.text)
+        # r_as_json = json.loads(r.text)[0]
+        # self.contentId = r_as_json['contentId']
+        # self.questionId = r_as_json['questions'][0]['questionId']
 
     def post_answer(self):
         print('userId: ' + str(self.userId))
         print('contentId: ' + str(self.contentId))
         print('questionId: ' + str(self.questionId))
 
-        r = requests.post('http://localhost:5000/worker/answers', data=json.dumps({
+        r = requests.post('http://localhost:5000/worker/' + str(self.userId) + '/answers?last=true', data=json.dumps({
             'userId': self.userId,
             'contentId': self.contentId,
             'questionId': self.questionId,
-            'answer': 'Berghotel Grosse Scheidegg'
+            'answer': 'Berghotel Grosse Scheidegg',
         }))
 
         print(r.text)
+
+        r_as_json = json.loads(r.text)
+        self.assertTrue(isclose(r_as_json['reward'], 0.05))
+
+    def get_worker(self):
+        r = requests.get('http://localhost:5000/worker/' + str(self.userId))
+        r_as_json = json.loads(r.text)
+        score = r_as_json['score']
+        self.assertTrue(isclose(score, 0.05))

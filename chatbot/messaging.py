@@ -207,7 +207,10 @@ def handle_message_given_task(message):
     question_id = questions[current_question]["questionId"]
     content_id = user_state["content_id"]
 
-    res = Api.post_answer(answer, user_id, question_id, content_id)
+    if current_question == len(questions) - 1:
+        res = Api.post_answer(answer, user_id, question_id, content_id, True)
+    else:
+        res = Api.post_answer(answer, user_id, question_id, content_id, False)
 
     if not res:
         Facebook.send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")

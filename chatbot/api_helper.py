@@ -45,7 +45,7 @@ def get_tasks():
     return res
 
 
-def post_answer(answer, user_id, question_id, content_id):
+def post_answer(answer, user_id, question_id, content_id, last):
     data = {
         "answer": answer,
         "userId": user_id,
@@ -53,7 +53,7 @@ def post_answer(answer, user_id, question_id, content_id):
         "contentId": content_id
     }
 
-    res = call_api("POST", "/worker/answers", data)
+    res = call_api("POST", "/worker/answers?last=" + "true" if last else "false", data)
     if not res:
         return False
 

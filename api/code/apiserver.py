@@ -3,21 +3,23 @@ import json
 from api.code.apifuncs.api import QuoteResource
 from api.code.model import *
 
+REWARD = 0.05
 
 def add_api_routes(app):
     app.add_route('/quote', QuoteResource())
     app.add_route('/worker/tasks', WorkerTasksResource())
-    app.add_route('/worker/answers', WorkerAnswersResource())
+    app.add_route('/worker/{user_id}/answers', WorkerAnswersResource())
     app.add_route('/worker/users', WorkerUsersResource())
+    app.add_route('/worker/{user_id}', WorkerResource())
     app.add_route('/requester/tasks', RequesterTasksResource())
     app.add_route('/requester/tasks/{task_id}/answers', RequesterTasksAnswersResource())
-
 
 mysql_db.create_tables([User, Task, Question, Content, Answer, Location], safe=True)
 
 
 class WorkerAnswersResource:
-    def on_post(self, req, resp):
+    def on_post(self, req, resp, user_id):
+        last_answer = req.get_param("last") == "true"
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
         answer = Answer.create(answer=req_as_json['answer'],
@@ -26,11 +28,14 @@ class WorkerAnswersResource:
                                questionId=req_as_json['questionId'])
 
         answer.save()
-
-        resp.body = json.dumps({
-            'success': True,
-            'reward': 100000000000
-        })
+        response = {
+            'success': True
+        }
+        if last_answer:
+            query = User.update(score=User.score + REWARD).where(User.id == user_id)
+            query.execute()
+            response['reward'] = REWARD
+        resp.body = json.dumps(response)
 
 
 class WorkerTasksResource:
@@ -106,10 +111,11 @@ class WorkerTasksResource:
                 }
             except DoesNotExist:
                 # if no location is present, that is fine
-                print('no location found, so not adding to content for contentId '+str(content.id))
+                print('no location found, so not adding to content for contentId ' + str(content.id))
 
             tasks.append(task_data)
         resp.body = json.dumps(tasks)
+
 
 class WorkerUsersResource:
     def on_post(self, req, resp):
@@ -129,9 +135,20 @@ class WorkerUsersResource:
             resp.body = json.dumps({'error': 'no facebook id is provided, other platforms are not supported at this time.'})
 
 
+class WorkerResource(object):
+    def on_get(self, req, resp, user_id):
+        user = User.get(User.id == user_id)
+        response = {
+            'facebookId': user.facebookId,
+            'score': user.score
+        }
+        resp.body = json.dumps(response)
+
+
     # def on_get(self, req, resp):
     #     user = User.create()
     #     resp.body = json.dumps({'userId': user.id})
+
 
 class RequesterTasksResource:
     def on_post(self, req, resp):
