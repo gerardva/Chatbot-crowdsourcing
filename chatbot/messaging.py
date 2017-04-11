@@ -190,14 +190,14 @@ def handle_message_given_task(message):
 
     answer = None
     if answer_type == "plaintext":
-        if not message["text"]:
+        if not message.get("text"):
             Facebook.send_message(message["sender_id"], "I was expecting text as an answer to this question..")
             return
 
         answer = message["text"]
 
     elif answer_type == "image":
-        if not message["image"]:
+        if not message.get("image"):
             Facebook.send_message(message["sender_id"], "I was expecting an image as an answer to this question..")
             return
 
