@@ -60,8 +60,8 @@ class ReviewPipeline:
     def review_content_description_maker(self, elaborate_answer):
         content = elaborate_answer['content']['dataJSON']
 
-        content['reviewQuestion'] = elaborate_answer['question']['question']
-        content['reviewAnswer'] = elaborate_answer['answer']
+        #content['reviewQuestion'] = elaborate_answer['question']['question']
+        #content['reviewAnswer'] = elaborate_answer['answer']
 
         return {'data': content}
 
@@ -70,7 +70,9 @@ class ReviewPipeline:
         original_question = elaborate_answer['question']['question']
 
         review_question = {
-            'question': 'Is "{answer}" a good answer for the question: "{question}"?',
+            'question': 'Is "{answer}" a good answer for the question: "{question}"?'.format(
+                answer=original_answer, question=original_question
+            ),
             'answerSpecification': {
                 'type': 'option',
                 'options': ['Yes', 'No']
