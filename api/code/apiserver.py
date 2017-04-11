@@ -80,14 +80,7 @@ class WorkerTasksResource:
                 # ignore limit parameter if it is not an integer
                 pass
 
-        # check whether length of contents is 0
-        if len(contents) == 0:
-            # when no contents exist, nothing can be returned
-            resp.body = json.dumps({})
-            return
-
         tasks = []
-        # TODO: query by task, so user can get a list of different tasks to choose from instead of different contents
         for content in contents:
             questions = content.taskId.questions.order_by(Question.index)
 
@@ -111,7 +104,6 @@ class WorkerTasksResource:
             }
 
             try:
-                # TODO: i believe kilian already made the relation 1 to 0..1, so then the .first() might be redundant.
                 location = content.location.get()
                 task_data['location'] = {
                     'latitude': location.latitude,
