@@ -4,6 +4,9 @@ import json
 import unittest
 import requests
 
+# TODO this should be imported form settings
+WAITRESS_PORT = 5000
+base_api_url = 'http://localhost:'+str(WAITRESS_PORT)
 
 
 class ApiIntegrationTest(unittest.TestCase):
@@ -32,7 +35,7 @@ class ApiIntegrationTest(unittest.TestCase):
             self.make_review_pipeline()
 
     def create_new_user(self):
-        r = requests.post('http://localhost:5000/worker/users', data=json.dumps({
+        r = requests.post(base_api_url + '/worker/users', data=json.dumps({
             'facebookId': 'this is totally a legit facebook id'
         }))
 
@@ -41,7 +44,7 @@ class ApiIntegrationTest(unittest.TestCase):
         self.userId = r_as_json['userId']
 
     def post_task(self):
-        r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
+        r = requests.post(base_api_url + '/requester/tasks', data=json.dumps({
             'userId': self.userId,
             'description': 'Annotation of receipts',
             'content': [
@@ -58,7 +61,7 @@ class ApiIntegrationTest(unittest.TestCase):
         print(r.text)
 
     def post_type_3_task(self):
-        r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
+        r = requests.post(base_api_url + '/requester/tasks', data=json.dumps({
             'userId': self.userId,
             'description': 'Taking picture of landmark',
             'content': [
@@ -76,7 +79,7 @@ class ApiIntegrationTest(unittest.TestCase):
         print(r.text)
 
     def post_task_with_option_answer(self):
-        r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
+        r = requests.post(base_api_url + '/requester/tasks', data=json.dumps({
             'userId': self.userId,
             'description': 'annotation of receipts',
             'dataLocation': {'longitude': 0.0,
@@ -94,7 +97,7 @@ class ApiIntegrationTest(unittest.TestCase):
         print(r.text)
 
     def get_task(self):
-        r = requests.get('http://localhost:5000/worker/' + str(self.userId) + '/tasks?order=random&limit=1')
+        r = requests.get(base_api_url + '/worker/' + str(self.userId) + '/tasks?order=random&limit=1')
 
         print("get_task: " + r.text)
         r_as_json = r.json()[0]
@@ -102,7 +105,7 @@ class ApiIntegrationTest(unittest.TestCase):
         self.questionId = r_as_json['questions'][0]['questionId']
 
     def get_location_based_task(self):
-        r = requests.get('http://localhost:5000/worker/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
+        r = requests.get(base_api_url + '/worker/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
 
         print('location based task: '+r.text)
         #r_as_json = json.loads(r.text)[0]
@@ -114,7 +117,7 @@ class ApiIntegrationTest(unittest.TestCase):
         print('contentId: ' + str(self.contentId))
         print('questionId: ' + str(self.questionId))
 
-        r = requests.post('http://localhost:5000/worker/answers', data=json.dumps({
+        r = requests.post(base_api_url + '/worker/answers', data=json.dumps({
             'userId': self.userId,
             'contentId': self.contentId,
             'questionId': self.questionId,
@@ -124,7 +127,7 @@ class ApiIntegrationTest(unittest.TestCase):
         print(r.text)
 
     def can_not_answer_content(self):
-        r = requests.post('http://localhost:5000/worker/users', json.dumps({
+        r = requests.post(base_api_url + '/worker/users', json.dumps({
             'facebookId': 'legit id 2'
         }))
 
@@ -132,7 +135,7 @@ class ApiIntegrationTest(unittest.TestCase):
 
         other_user_id = r_as_json['userId']
 
-        r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
+        r = requests.post(base_api_url + '/requester/tasks', data=json.dumps({
             'userId': other_user_id,
             'description': 'Annotation of receipts',
             'canNotMake': [
@@ -155,7 +158,7 @@ class ApiIntegrationTest(unittest.TestCase):
         self.task_id = task_id
         print('\nlooking for taskid '+str(task_id)+'\n')
 
-        r = requests.get('http://localhost:5000/worker/' + str(other_user_id) + '/tasks?order=random')
+        r = requests.get(base_api_url + '/worker/' + str(other_user_id) + '/tasks?order=random')
 
         r_as_json = json.loads(r.text)
         found_task = False
@@ -170,7 +173,7 @@ class ApiIntegrationTest(unittest.TestCase):
                              'found a task (with just one content) that should have been blocked by CanNotAnswer')
 
     def make_review_pipeline(self):
-        r = requests.post('http://localhost:5000/worker/users', json.dumps({
+        r = requests.post(base_api_url + '/worker/users', json.dumps({
             'facebookId': 'legit id 2'
         }))
 
@@ -185,7 +188,7 @@ class ApiIntegrationTest(unittest.TestCase):
         content_id = Content.get(Content.taskId == self.task_id).id
         question_id = Question.get(Question.taskId == self.task_id).id
 
-        r = requests.post('http://localhost:5000/worker/' + str(other_user_id) + '/answers', data=json.dumps({
+        r = requests.post(base_api_url + '/worker/' + str(other_user_id) + '/answers', data=json.dumps({
             'userId': other_user_id,
             'contentId': content_id,
             'questionId': question_id,
@@ -201,7 +204,7 @@ class ApiIntegrationTest(unittest.TestCase):
         review_question_id = Question.get(Question.taskId == review_task_id).id
 
         for content in review_contents:
-            r = requests.post('http://localhost:5000/worker/' + str(other_user_id) + '/answers', data=json.dumps({
+            r = requests.post(base_api_url + '/worker/' + str(other_user_id) + '/answers', data=json.dumps({
                 'userId': other_user_id,
                 'contentId': content.id,
                 'questionId': review_question_id,
