@@ -35,9 +35,8 @@ class ReviewPipeline:
 
         for elaborate_answer in r_as_json:
             review_task['questionRows'].append(self.review_question_maker(elaborate_answer))
-            for i in range(self.amount_of_reviews):
-                review_task['canNotMake'].append(self.review_can_not_answer_maker(elaborate_answer))
-                review_task['content'].append(self.review_content_description_maker(elaborate_answer))
+            review_task['canNotMake'].append(self.review_can_not_answer_maker(elaborate_answer))
+            review_task['content'].append(self.review_content_description_maker(elaborate_answer))
 
         print('\n')
         print(json.dumps(review_task))
