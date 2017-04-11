@@ -11,17 +11,20 @@ def handle_postback_message(messaging_event):
     message = construct_postback_message(messaging_event)
     handle_message(message)
 
+
 def handle_text_message(messaging_event):
     message = construct_message(messaging_event)
     handle_message(message)
 
+
 def handle_message(message):
+    sender_id = message["sender_id"]
 
     # If we haven't seen the user before, check if the user is registered
-    if user_states.get(message["sender_id"]) is None:
-        get_user(message["sender_id"])
+    if user_states.get(sender_id) is None:
+        get_user(sender_id)
 
-    user_state = user_states[message["sender_id"]]  # This should not be None after get_user
+    user_state = user_states[sender_id]  # This should not be None after get_user
 
     if user_state["state"] == "idle":
         handle_message_idle(message)
@@ -34,33 +37,39 @@ def handle_message(message):
 
     # Handle default case
     else:
-        Facebook.send_message(message["sender_id"], "I did not understand your message")
+        Facebook.send_message(sender_id, "You ended up in limbo! I'm sorry, I cannot help you at the moment. "
+                              "Contact the app creators with the following information: " + user_state["state"])
 
 
 def handle_message_idle(message):
+    sender_id = message["sender_id"]
+    user_id = user_states[sender_id]["user_id"]
+
     # Handle giving task
     if message.get("coordinates") or message.get("quick_reply_payload") == "random_task" or \
-                    message["text"] == "Give me a random task":
-        task = Api.get_random_task()
+       message["text"] == "Give me a random task":
+        coordinates = message.get("coordinates", {})
+        task = Api.get_random_task(user_id, coordinates.get("long"), coordinates.get("lat"))
         if not task:
-            Facebook.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
+            Facebook.send_message(sender_id, "Unfortunately, I could not find a task for you. This most likely means "
+                                  "that there are no available tasks at the moment. Be sure to check back later!")
             return
 
         questions = task["questions"]
         task_content = task["content"]
 
-        send_task(task_content, questions, message["sender_id"], task)
+        send_task(task_content, questions, sender_id, task)
 
     # Handle giving multiple tasks
     elif message.get("quick_reply_payload") == "list_task" or message["text"] == "Give me a list of tasks to choose from":
-        tasks = Api.get_tasks()
+        tasks = Api.get_tasks(user_id)
         if not tasks:
-            Facebook.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
+            Facebook.send_message(sender_id, "Sorry, something went wrong when retrieving your task")
             return
 
-        user_states[message["sender_id"]] = {
+        user_states[sender_id] = {
             "state": "given_task_options",
-            "user_id": user_states[message["sender_id"]]["user_id"],
+            "user_id": user_id,
             "tasks": tasks
         }
         log(user_states)
@@ -75,7 +84,7 @@ def handle_message_idle(message):
                 "payload": "task_" + str(i+1)
             })
 
-        Facebook.send_message(message["sender_id"], mes, quick_replies)
+        Facebook.send_message(sender_id, mes, quick_replies)
 
     # Handle initial message
     else:  # str.lower(message["text"]) in greetings:
@@ -91,8 +100,8 @@ def handle_message_idle(message):
             "payload": "list_task"
         }]
 
-        Facebook.send_message(message["sender_id"], "What's up? I can give you a task, but if you send your location "
-                                                    "I can give you even cooler tasks.", quick_replies)
+        Facebook.send_message(sender_id, "What's up? I can give you a task, but if you send your location "
+                                         "I can give you even cooler tasks.", quick_replies)
 
 
 def handle_message_given_task_options(message):
@@ -135,6 +144,12 @@ def send_task(task_content, questions, sender_id, task):
                            "Cancel task", "cancel_task")
 
     data_json = json.loads(task_content) if task_content else {}
+    question = questions[0]
+
+    question_text = question["question"]
+    #if data_json.get("reviewQuestion") is not None and data_json.get("reviewAnswer") is not None:
+    #    question_text = question_text.format(question=data_json.get("reviewQuestion"),
+    #                                         answer=data_json.get("reviewAnswer"))
 
     if data_json.get("pictureUrl") is not None:
         Facebook.send_image(sender_id, data_json["pictureUrl"])
@@ -144,11 +159,11 @@ def send_task(task_content, questions, sender_id, task):
         Facebook.send_message(sender_id, "Webcare answer:\n" + data_json["answer"])
 
     quick_replies = None
-    answer_specification = json.loads(questions[0]["answerSpecification"])
+    answer_specification = json.loads(question["answerSpecification"])
     if answer_specification["type"] == "option":
         quick_replies = construct_options_quick_replies(answer_specification["options"])
 
-    Facebook.send_message(sender_id, questions[0]["question"], quick_replies)
+    Facebook.send_message(sender_id, question_text, quick_replies)
 
 
 def handle_message_given_task(message):
