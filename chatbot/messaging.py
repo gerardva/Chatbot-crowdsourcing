@@ -143,6 +143,12 @@ def send_task(task_content, questions, sender_id, task):
                            "Cancel task", "cancel_task")
 
     data_json = json.loads(task_content) if task_content else {}
+    question = questions[0]
+
+    question_text = question["question"]
+    if data_json.get("reviewQuestion") is not None and data_json.get("reviewAnswer") is not None:
+        question_text = question_text.format(question=data_json.get("reviewQuestion"),
+                                             answer=data_json.get("reviewAnswer"))
 
     if data_json.get("pictureUrl") is not None:
         Facebook.send_image(sender_id, data_json["pictureUrl"])
@@ -152,11 +158,11 @@ def send_task(task_content, questions, sender_id, task):
         Facebook.send_message(sender_id, "Webcare answer:\n" + data_json["answer"])
 
     quick_replies = None
-    answer_specification = json.loads(questions[0]["answerSpecification"])
+    answer_specification = json.loads(question["answerSpecification"])
     if answer_specification["type"] == "option":
         quick_replies = construct_options_quick_replies(answer_specification["options"])
 
-    Facebook.send_message(sender_id, questions[0]["question"], quick_replies)
+    Facebook.send_message(sender_id, question_text, quick_replies)
 
 
 def handle_message_given_task(message):
