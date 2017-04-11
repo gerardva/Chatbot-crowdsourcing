@@ -41,15 +41,12 @@ class ReviewPipeline:
 
         print('\n')
         print(json.dumps(review_task))
+
         r = requests.post(base_api_url+'/requester/tasks', data=json.dumps(review_task))
         print(r.text)
         r_as_json = json.loads(r.text)
         self.review_task_id = r_as_json['taskId']
         return r_as_json['taskId']
-
-
-    # def review_content_maker(self, r_as_json):
-    #     return {}
 
     def review_task_description_maker(self):
         base_desc = 'Review of the following task: '
@@ -62,18 +59,20 @@ class ReviewPipeline:
         return [elaborate_answer['userId']]
 
     def review_content_description_maker(self, elaborate_answer):
-        return elaborate_answer['content']['dataJSON']
+        content = elaborate_answer['content']['dataJSON']
+
+        content['reviewQuestion'] = elaborate_answer['question']['question']
+        content['reviewAnswer'] = elaborate_answer['answer']
+
+        print(content)
+        return content
 
     def review_question_maker(self, elaborate_answer):
         original_answer = elaborate_answer['answer']
         original_question = elaborate_answer['question']['question']
 
         review_question = {
-            'question': 'Is \"' +
-                        original_answer +
-                        '\" a good answer for the question: \"' +
-                        original_question +
-                        '\"',
+            'question': 'Is "{answer}" a good answer for the question: "{question}"?',
             'answerSpecification': {
                 'type': 'option',
                 'options': ['Yes', 'No']
