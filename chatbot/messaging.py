@@ -11,17 +11,20 @@ def handle_postback_message(messaging_event):
     message = construct_postback_message(messaging_event)
     handle_message(message)
 
+
 def handle_text_message(messaging_event):
     message = construct_message(messaging_event)
     handle_message(message)
 
+
 def handle_message(message):
+    sender_id = message["sender_id"]
 
     # If we haven't seen the user before, check if the user is registered
-    if user_states.get(message["sender_id"]) is None:
-        get_user(message["sender_id"])
+    if user_states.get(sender_id) is None:
+        get_user(sender_id)
 
-    user_state = user_states[message["sender_id"]]  # This should not be None after get_user
+    user_state = user_states[sender_id]  # This should not be None after get_user
 
     if user_state["state"] == "idle":
         handle_message_idle(message)
@@ -34,7 +37,8 @@ def handle_message(message):
 
     # Handle default case
     else:
-        Facebook.send_message(message["sender_id"], "I did not understand your message")
+        Facebook.send_message(sender_id, "You ended up in limbo! I'm sorry, I cannot help you at the moment. "
+                              "Contact the app creators with the following information: " + user_state["state"])
 
 
 def handle_message_idle(message):
@@ -43,10 +47,11 @@ def handle_message_idle(message):
 
     # Handle giving task
     if message.get("coordinates") or message.get("quick_reply_payload") == "random_task" or \
-                    message["text"] == "Give me a random task":
+       message["text"] == "Give me a random task":
         task = Api.get_random_task(user_id)
         if not task:
-            Facebook.send_message(sender_id, "Sorry, something went wrong when retrieving your task")
+            Facebook.send_message(sender_id, "Unfortunately, I could not find a task for you. This most likely means "
+                                  "that there are no available tasks at the moment. Be sure to check back later!")
             return
 
         questions = task["questions"]
