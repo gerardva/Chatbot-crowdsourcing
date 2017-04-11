@@ -10,6 +10,7 @@ def add_api_routes(app):
     app.add_route('/requester/tasks', RequesterTasksResource())
     app.add_route('/requester/tasks/{task_id}/answers', RequesterTasksAnswersResource())
 
+
 mysql_db.create_tables([User, Task, Question, Content, Answer, Location, CanNotAnswer], safe=True)
 
 
@@ -32,53 +33,7 @@ class WorkerAnswersResource:
 
 class WorkerTasksResource:
     def on_get(self, req, resp, user_id):
-        # read parameters
-        limit = req.get_param("limit")
-        order = req.get_param("order", default="random")
-
-        # start building subquery
-        # the subquery that returns a single content id per task, for all contents
-        # that match the user's query and that they are allowed to do
-        subquery = None
-        if order == "random":
-            subquery = Content.select(fn.Min(Content.id))
-        elif order == "location":
-            # does not use circle dist, but square with sides of 2 x maxDist
-            max_dist = float(req.get_param("range"))
-            longitude = float(req.get_param("longitude"))
-            latitude = float(req.get_param("latitude"))
-
-            max_longitude = longitude + max_dist
-            min_longitude = longitude - max_dist
-            max_latitude = latitude + max_dist
-            min_latitude = latitude - max_dist
-            # get location within square of sides r with long and lat as center, randomize these points
-            # (for limiting alter on for example)
-            subquery = Content.select(fn.Min(Content.id)).join(Location).where(
-                (Location.longitude >= min_longitude) &
-                (Location.longitude <= max_longitude) &
-                (Location.latitude >= min_latitude) &
-                (Location.latitude <= max_latitude))
-
-        subquery = subquery.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
-            (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
-
-        subquery = subquery.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
-            (Answer.userId.is_null()) | (Answer.userId != user_id))
-
-        subquery = subquery.group_by(Content.taskId)
-
-        # get a content for each task
-        # we join it with Task to prevent N+1 queries to get the associated task later
-        contents = Content.select(Content, Task).join(Task).where(Content.id << subquery)
-
-        if limit:
-            try:
-                limit_int = int(limit)
-                contents = contents.limit(limit_int)
-            except ValueError:
-                # ignore limit parameter if it is not an integer
-                pass
+        contents = self.build_get_tasks_query(req, user_id)
 
         tasks = []
         for content in contents:
@@ -115,6 +70,65 @@ class WorkerTasksResource:
 
             tasks.append(task_data)
         resp.body = json.dumps(tasks)
+
+    @staticmethod
+    def build_get_tasks_query(req, user_id):
+        # read parameters
+        limit = req.get_param("limit")
+        order = req.get_param("order", default="random")
+
+        # start building subquery
+        # the subquery returns a single content id per task, for all contents
+        # that match the worker's query and the worker is allowed to do
+        subquery = None
+        if order == "random":
+            subquery = Content.select(fn.Min(Content.id))
+        elif order == "location":
+            subquery = WorkerTasksResource.build_location_subquery(req)
+
+        # filter out contents that this worker can not answer
+        # (e.g. due to having answered the original task that this is a review task of)
+        subquery = subquery.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
+            (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
+
+        # filter out contents that this user has already answered
+        subquery = subquery.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
+            (Answer.userId.is_null()) | (Answer.userId != user_id))
+
+        # group by task, meaning the minimum content id per task is returned
+        subquery = subquery.group_by(Content.taskId)
+
+        # get a content for each task
+        # we join it with Task to prevent N+1 queries to get the associated task later
+        contents = Content.select(Content, Task).join(Task).where(Content.id << subquery)
+
+        if limit:
+            try:
+                limit_int = int(limit)
+                contents = contents.limit(limit_int)
+            except ValueError:
+                # ignore limit parameter if it is not an integer
+                pass
+        return contents
+
+    @staticmethod
+    def build_location_subquery(req):
+        # does not use circle dist, but square with sides of 2 x maxDist
+        max_dist = float(req.get_param("range"))
+        longitude = float(req.get_param("longitude"))
+        latitude = float(req.get_param("latitude"))
+
+        max_longitude = longitude + max_dist
+        min_longitude = longitude - max_dist
+        max_latitude = latitude + max_dist
+        min_latitude = latitude - max_dist
+        # get location within square of sides r with long and lat as center, randomize these points
+        # (for limiting alter on for example)
+        return Content.select(fn.Min(Content.id)).join(Location).where(
+            (Location.longitude >= min_longitude) &
+            (Location.longitude <= max_longitude) &
+            (Location.latitude >= min_latitude) &
+            (Location.latitude <= max_latitude))
 
 
 class WorkerUsersResource:
