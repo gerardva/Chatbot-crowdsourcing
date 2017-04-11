@@ -60,8 +60,8 @@ class ReviewPipeline:
     def review_content_description_maker(self, elaborate_answer):
         content = elaborate_answer['content']['dataJSON']
 
-        content['reviewQuestion'] = elaborate_answer['question']['question']
-        content['reviewAnswer'] = elaborate_answer['answer']
+        #content['reviewQuestion'] = elaborate_answer['question']['question']
+        #content['reviewAnswer'] = elaborate_answer['answer']
 
         return {'data': content}
 
@@ -70,7 +70,9 @@ class ReviewPipeline:
         original_question = elaborate_answer['question']['question']
 
         review_question = {
-            'question': 'Is "{answer}" a good answer for the question: "{question}"?',
+            'question': 'Is "{answer}" a good answer for the question: "{question}"?'.format(
+                answer=original_answer, question=original_question
+            ),
             'answerSpecification': {
                 'type': 'option',
                 'options': ['Yes', 'No']
@@ -91,14 +93,19 @@ class ReviewPipeline:
 
         print(json.dumps(grouped_answers))
 
+        unfinished_questions = []
         for key, answer_group in grouped_answers.items():
             print(json.dumps(answer_group))
             yes_count = 0
             for answer in answer_group:
                 if answer['answer'] == 'Yes':
                     yes_count += 1
+
             if yes_count < self.amount_of_reviews:
-                grouped_answers.remove(answer_group)
+                unfinished_questions.append(key)
+
+        for q in unfinished_questions:
+            grouped_answers.pop(q)
 
         result = []
         for key, answer_group in grouped_answers.items():

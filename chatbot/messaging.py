@@ -147,9 +147,9 @@ def send_task(task_content, questions, sender_id, task):
     question = questions[0]
 
     question_text = question["question"]
-    if data_json.get("reviewQuestion") is not None and data_json.get("reviewAnswer") is not None:
-        question_text = question_text.format(question=data_json.get("reviewQuestion"),
-                                             answer=data_json.get("reviewAnswer"))
+    #if data_json.get("reviewQuestion") is not None and data_json.get("reviewAnswer") is not None:
+    #    question_text = question_text.format(question=data_json.get("reviewQuestion"),
+    #                                         answer=data_json.get("reviewAnswer"))
 
     if data_json.get("pictureUrl") is not None:
         Facebook.send_image(sender_id, data_json["pictureUrl"])
