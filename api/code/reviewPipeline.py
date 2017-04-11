@@ -93,14 +93,19 @@ class ReviewPipeline:
 
         print(json.dumps(grouped_answers))
 
+        unfinished_questions = []
         for key, answer_group in grouped_answers.items():
             print(json.dumps(answer_group))
             yes_count = 0
             for answer in answer_group:
                 if answer['answer'] == 'Yes':
                     yes_count += 1
+
             if yes_count < self.amount_of_reviews:
-                grouped_answers.remove(answer_group)
+                unfinished_questions.append(key)
+
+        for q in unfinished_questions:
+            grouped_answers.pop(q)
 
         result = []
         for key, answer_group in grouped_answers.items():
