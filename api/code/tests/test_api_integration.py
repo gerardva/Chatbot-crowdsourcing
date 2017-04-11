@@ -183,13 +183,20 @@ class ApiIntegrationTest(unittest.TestCase):
         # r_as_json = json.loads(r.text)
 
         content_id = Content.get(Content.taskId == self.task_id).id
-        question_id = Question.get(Question.taskId == self.task_id).id
+        questions = Question.select().where(Question.taskId == self.task_id)
 
         r = requests.post(base_api_url + '/worker/' + str(other_user_id) + '/answers', data=json.dumps({
             'userId': other_user_id,
             'contentId': content_id,
-            'questionId': question_id,
+            'questionId': questions[0].id,
             'answer': 'Berghotel Grosse Scheidegg'
+        }))
+
+        r = requests.post(base_api_url + '/worker/' + str(other_user_id) + '/answers', data=json.dumps({
+            'userId': other_user_id,
+            'contentId': content_id,
+            'questionId': questions[1].id,
+            'answer': '3818 Grindelwald'
         }))
 
         rp = ReviewPipeline(self.task_id, 2, self.userId)
