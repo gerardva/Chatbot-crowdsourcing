@@ -45,7 +45,8 @@ class ApiIntegrationTest(unittest.TestCase):
             'userId': self.userId,
             'description': 'Annotation of receipts',
             'content': [
-                {'data': {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}}
+                {'data': {'pictureUrl': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/ReceiptSwiss.jpg'}},
+                {'data': {'pictureUrl': 'second content url'}}
             ],
             'questionRows': [
                 {'question': 'What company is this receipt from?',

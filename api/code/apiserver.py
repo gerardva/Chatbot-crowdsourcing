@@ -10,7 +10,6 @@ def add_api_routes(app):
     app.add_route('/requester/tasks', RequesterTasksResource())
     app.add_route('/requester/tasks/{task_id}/answers', RequesterTasksAnswersResource())
 
-
 mysql_db.create_tables([User, Task, Question, Content, Answer, Location, CanNotAnswer], safe=True)
 
 
@@ -37,10 +36,12 @@ class WorkerTasksResource:
         limit = req.get_param("limit")
         order = req.get_param("order")
 
-        # start building query
-        contents = None
+        # start building subquery
+        # the subquery that returns a single content id per task, for all contents
+        # that match the user's query and that they are allowed to do
+        subquery = None
         if order == "random":
-            contents = Content.select()
+            subquery = Content.select(fn.Min(Content.id))
         elif order == "location":
             # does not use circle dist, but square with sides of 2 x maxDist
             max_dist = float(req.get_param("range"))
@@ -53,23 +54,27 @@ class WorkerTasksResource:
             min_latitude = latitude - max_dist
             # get location within square of sides r with long and lat as center, randomize these points
             # (for limiting alter on for example)
-            contents = Content.select(Content, Location).group_by(Content.taskId).join(Location).where(
+            subquery = Content.select(fn.Min(Content.id)).join(Location).where(
                 (Location.longitude >= min_longitude) &
                 (Location.longitude <= max_longitude) &
                 (Location.latitude >= min_latitude) &
                 (Location.latitude <= max_latitude))
 
         # each of these filters may make contents none, so repeated checks are needed
-        if contents is not None:
-            contents = contents.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
+        if subquery is not None:
+            subquery = subquery.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
                 (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
 
-        if contents is not None:
-            contents = contents.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
+        if subquery is not None:
+            subquery = subquery.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
                 (Answer.userId.is_null()) | (Answer.userId != user_id))
 
-        if contents is not None:
-            contents = contents.group_by(Content.taskId).order_by(fn.rand())
+        if subquery is not None:
+            subquery = subquery.group_by(Content.taskId)
+
+        # get a content for each task
+        # we join it with Task to prevent N+1 queries to get the associated task later
+        contents = Content.select(Content, Task).join(Task).where(Content.id << subquery)
 
         if contents is None or len(contents) == 0:
             # when no contents exist, nothing can be returned
@@ -87,7 +92,7 @@ class WorkerTasksResource:
         tasks = []
         # TODO: query by task, so user can get a list of different tasks to choose from instead of different contents
         for content in contents:
-            questions = Question.select(Question, Task).join(Task).where(Task.id == content.taskId).order_by(Question.index)
+            questions = content.taskId.questions.order_by(Question.index)
 
             questions_json = []
             for question in questions:

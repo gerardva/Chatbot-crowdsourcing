@@ -41,7 +41,7 @@ class Question(BaseModel):
     index = IntegerField()
     question = TextField()
     answerSpecificationJSON = TextField()
-    taskId = ForeignKeyField(Task)
+    taskId = ForeignKeyField(Task, related_name='questions')
 
     def as_json(self):
         return {
