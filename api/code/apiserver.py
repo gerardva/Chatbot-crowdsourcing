@@ -1,7 +1,6 @@
 from api.code.apifuncs.api import QuoteResource
 from api.code.model import *
 
-import json
 
 def add_api_routes(app):
     app.add_route('/quote', QuoteResource())
@@ -41,7 +40,7 @@ class WorkerTasksResource:
         # start building query
         contents = None
         if order == "random":
-            contents = Content.select().order_by(fn.Rand())
+            contents = Content.select().group_by(Content.taskId).order_by(fn.Rand())
         elif order == "location":
             # does not use circle dist, but square with sides of 2 x maxDist
             max_dist = float(req.get_param("range"))
@@ -54,7 +53,7 @@ class WorkerTasksResource:
             min_latitude = latitude - max_dist
             # get location within square of sides r with long and lat as center, randomize these points
             # (for limiting alter on for example)
-            contents = Content.select(Content, Location).join(Location).where(
+            contents = Content.select(Content, Location).group_by(Content.taskId).join(Location).where(
                 (Location.longitude >= min_longitude) &
                 (Location.longitude <= max_longitude) &
                 (Location.latitude >= min_latitude) &
@@ -114,6 +113,7 @@ class WorkerTasksResource:
             tasks.append(task_data)
         resp.body = json.dumps(tasks)
 
+
 class WorkerUsersResource:
     def on_post(self, req, resp):
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
@@ -131,11 +131,12 @@ class WorkerUsersResource:
         else:
             resp.body = json.dumps({'error': 'no facebook id is provided, other platforms are not supported at this time.'})
 
+
 class RequesterTasksResource:
     def on_get(self, req, resp):
         task_id = req.get_param('taskId')
         try:
-            task = Task.select().where(Task.id==task_id).get()
+            task = Task.select().where(Task.id == task_id).get()
             resp.body = json.dumps(task.as_json())
         except DoesNotExist:
             resp.body = {}
@@ -184,16 +185,16 @@ def add_location(content_id, location_as_json):
 
 class RequesterTasksAnswersResource:
     def on_get(self, req, resp, task_id):
-        #if we want to return the actual objects, in addition to their ids
+        # if we want to return the actual objects, in addition to their ids
         elaborate = req.get_param_as_bool('elaborate')
 
         task_id_int = int(task_id)
 
         print(task_id_int)
-        answers = Answer.select(Answer, Content, User, Task)\
+        answers = Answer.select(Answer, Content, User, Task) \
             .join(Content) \
-            .join(Task)\
-            .join(User)\
+            .join(Task) \
+            .join(User) \
             .where(Task.id == task_id_int)
 
         answers_list = []
