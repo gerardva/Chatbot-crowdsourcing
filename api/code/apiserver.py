@@ -40,7 +40,7 @@ class WorkerTasksResource:
         # start building query
         contents = None
         if order == "random":
-            contents = Content.select().group_by(Content.taskId).order_by(fn.Rand())
+            contents = Content.select()
         elif order == "location":
             # does not use circle dist, but square with sides of 2 x maxDist
             max_dist = float(req.get_param("range"))
@@ -57,15 +57,24 @@ class WorkerTasksResource:
                 (Location.longitude >= min_longitude) &
                 (Location.longitude <= max_longitude) &
                 (Location.latitude >= min_latitude) &
-                (Location.latitude <= max_latitude)).order_by(fn.rand())
+                (Location.latitude <= max_latitude))
+
+        # each of these filters may make contents none, so repeated checks are needed
+        if contents is not None:
+            contents = contents.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
+                (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
+
+        if contents is not None:
+            contents = contents.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
+                (Answer.userId.is_null()) | (Answer.userId != user_id))
+
+        if contents is not None:
+            contents = contents.group_by(Content.taskId).order_by(fn.rand())
 
         if contents is None or len(contents) == 0:
             # when no contents exist, nothing can be returned
             resp.body = json.dumps({})
             return
-
-        contents = contents.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
-            (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
 
         if limit:
             try:
