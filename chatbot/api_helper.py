@@ -48,12 +48,11 @@ def get_tasks(user_id):
 def post_answer(answer, user_id, question_id, content_id):
     data = {
         "answer": answer,
-        "userId": user_id,
         "questionId": question_id,
         "contentId": content_id
     }
 
-    res = call_api("POST", "/worker/answers", data)
+    res = call_api("POST", "/worker/{user_id}/answers".format(user_id=user_id), data)
     if not res:
         return False
 

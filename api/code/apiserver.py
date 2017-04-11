@@ -20,7 +20,7 @@ class WorkerAnswersResource:
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
         answer = Answer.create(answer=req_as_json['answer'],
-                               userId=req_as_json['userId'],
+                               userId=user_id,
                                contentId=req_as_json['contentId'],
                                questionId=req_as_json['questionId'])
 
