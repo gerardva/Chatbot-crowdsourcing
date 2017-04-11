@@ -19,9 +19,9 @@ class WorkerAnswersResource:
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
         answer = Answer.create(answer=req_as_json['answer'],
-                               userId=user_id,
-                               contentId=req_as_json['contentId'],
-                               questionId=req_as_json['questionId'])
+                               user=user_id,
+                               content=req_as_json['contentId'],
+                               question=req_as_json['questionId'])
 
         answer.save()
 
@@ -37,7 +37,7 @@ class WorkerTasksResource:
 
         tasks = []
         for content in contents:
-            questions = content.taskId.questions.order_by(Question.index)
+            questions = content.task.questions.order_by(Question.index)
 
             questions_json = []
             for question in questions:
@@ -48,7 +48,7 @@ class WorkerTasksResource:
                     'answerSpecification': question.answerSpecificationJSON
                 })
 
-            task = content.taskId
+            task = content.task
 
             task_data = {
                 'taskId': task.id,
@@ -88,15 +88,15 @@ class WorkerTasksResource:
 
         # filter out contents that this worker can not answer
         # (e.g. due to having answered the original task that this is a review task of)
-        subquery = subquery.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
-            (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
+        subquery = subquery.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.content)).where(
+            (CanNotAnswer.user.is_null()) | (CanNotAnswer.user != user_id))
 
         # filter out contents that this user has already answered
-        subquery = subquery.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
-            (Answer.userId.is_null()) | (Answer.userId != user_id))
+        subquery = subquery.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.content)).where(
+            (Answer.user.is_null()) | (Answer.user != user_id))
 
         # group by task, meaning the minimum content id per task is returned
-        subquery = subquery.group_by(Content.taskId)
+        subquery = subquery.group_by(Content.task)
 
         # get a content for each task
         # we join it with Task to prevent N+1 queries to get the associated task later
@@ -160,7 +160,7 @@ class RequesterTasksResource:
 
     def on_post(self, req, resp):
         request_dict = json.loads(req.stream.read().decode('utf-8'))
-        task = Task.create(userId=request_dict['userId'],
+        task = Task.create(user=request_dict['userId'],
                            description=request_dict['description'])
         task.save()
 
@@ -170,15 +170,15 @@ class RequesterTasksResource:
             new_question = Question.create(index=index,
                                            question=question_string,
                                            answerSpecificationJSON=json.dumps(answer_specification),
-                                           taskId=task.id)
+                                           task=task.id)
 
         i = 0
         for content in request_dict['content']:
             content_id = None
             if 'data' in content:
-                content_id = Content.create(dataJSON=json.dumps(content['data']), taskId=task.id)
+                content_id = Content.create(dataJSON=json.dumps(content['data']), task=task.id)
             else:
-                content_id = Content.create(taskId=task.id)
+                content_id = Content.create(task=task.id)
             if 'location' in content:
                 add_location(content_id, content['location'])
 
@@ -187,14 +187,14 @@ class RequesterTasksResource:
             if 'canNotMake' in request_dict:
                 can_not_be_made_by_users = request_dict['canNotMake'][i]
                 for userId in can_not_be_made_by_users:
-                    can_not_make_id = CanNotAnswer.create(userId=userId, contentId=content_id)
+                    can_not_make_id = CanNotAnswer.create(user=userId, content=content_id)
             i += 1
 
         resp.body = json.dumps({'taskId': task.id})
 
 
 def add_location(content_id, location_as_json):
-    location = Location.create(contentId=content_id,
+    location = Location.create(content=content_id,
                                latitude=location_as_json['latitude'],
                                longitude=location_as_json['longitude'])
     location.save()
@@ -218,16 +218,16 @@ class RequesterTasksAnswersResource:
         for answer in answers:
             result_answer = {
                 'answer': answer.answer,
-                'contentId': answer.contentId.id,
-                'questionId': answer.questionId.id,
-                'userId': answer.userId.id,
-                'taskId': answer.contentId.taskId.id
+                'contentId': answer.content.id,
+                'questionId': answer.question.id,
+                'userId': answer.user.id,
+                'taskId': answer.content.task.id
             }
             if elaborate:
-                result_answer['content'] = answer.contentId.as_json()
-                result_answer['user'] = answer.userId.as_json()
-                result_answer['question'] = answer.questionId.as_json()
-                result_answer['task'] = answer.contentId.taskId.as_json()
+                result_answer['content'] = answer.content.as_json()
+                result_answer['user'] = answer.user.as_json()
+                result_answer['question'] = answer.question.as_json()
+                result_answer['task'] = answer.content.task.as_json()
 
             answers_list.append(result_answer)
 

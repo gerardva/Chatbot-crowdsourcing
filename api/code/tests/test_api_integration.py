@@ -183,8 +183,8 @@ class ApiIntegrationTest(unittest.TestCase):
         #
         # r_as_json = json.loads(r.text)
 
-        content_id = Content.get(Content.taskId == self.task_id).id
-        questions = Question.select().where(Question.taskId == self.task_id)
+        content_id = Content.get(Content.task == self.task_id).id
+        questions = Question.select().where(Question.task == self.task_id)
 
         r = requests.post(base_api_url + '/worker/' + str(other_user_id) + '/answers', data=json.dumps({
             'userId': other_user_id,
@@ -205,8 +205,8 @@ class ApiIntegrationTest(unittest.TestCase):
 
         #print('review_task_id'+ str(review_task_id))
 
-        review_contents = Content.select().where(Content.taskId == review_task_id)
-        review_question_id = Question.get(Question.taskId == review_task_id).id
+        review_contents = Content.select().where(Content.task == review_task_id)
+        review_question_id = Question.get(Question.task == review_task_id).id
 
         for content in review_contents:
             r = requests.post(base_api_url + '/worker/' + str(other_user_id) + '/answers', data=json.dumps({
