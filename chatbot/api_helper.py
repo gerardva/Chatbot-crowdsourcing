@@ -64,12 +64,21 @@ def post_answer(answer, user_id, question_id, content_id, last):
 
     return True
 
+
 def get_user(facebook_id):
     data = {
         'facebookId': facebook_id
     }
 
     res = call_api("POST", "/worker", data)
+    if not res:
+        return False
+
+    return res
+
+
+def get_user_data(user_id):
+    res = call_api("GET", "/worker/{user_id}".format(user_id=user_id))
     if not res:
         return False
 

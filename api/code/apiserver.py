@@ -154,7 +154,7 @@ class WorkerUserIdResource(object):
         user = User.get(User.id == user_id)
         response = {
             'facebookId': user.facebookId,
-            'score': user.score
+            'score': str(user.score)
         }
         resp.body = json.dumps(response)
 
