@@ -34,7 +34,7 @@ class WorkerTasksResource:
     def on_get(self, req, resp, user_id):
         # read parameters
         limit = req.get_param("limit")
-        order = req.get_param("order")
+        order = req.get_param("order", default="random")
 
         # start building subquery
         # the subquery that returns a single content id per task, for all contents
@@ -60,26 +60,17 @@ class WorkerTasksResource:
                 (Location.latitude >= min_latitude) &
                 (Location.latitude <= max_latitude))
 
-        # each of these filters may make contents none, so repeated checks are needed
-        if subquery is not None:
-            subquery = subquery.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
-                (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
+        subquery = subquery.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
+            (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
 
-        if subquery is not None:
-            subquery = subquery.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
-                (Answer.userId.is_null()) | (Answer.userId != user_id))
+        subquery = subquery.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
+            (Answer.userId.is_null()) | (Answer.userId != user_id))
 
-        if subquery is not None:
-            subquery = subquery.group_by(Content.taskId)
+        subquery = subquery.group_by(Content.taskId)
 
         # get a content for each task
         # we join it with Task to prevent N+1 queries to get the associated task later
         contents = Content.select(Content, Task).join(Task).where(Content.id << subquery)
-
-        if contents is None or len(contents) == 0:
-            # when no contents exist, nothing can be returned
-            resp.body = json.dumps({})
-            return
 
         if limit:
             try:
@@ -88,6 +79,12 @@ class WorkerTasksResource:
             except ValueError:
                 # ignore limit parameter if it is not an integer
                 pass
+
+        # check whether length of contents is 0
+        if len(contents) == 0:
+            # when no contents exist, nothing can be returned
+            resp.body = json.dumps({})
+            return
 
         tasks = []
         # TODO: query by task, so user can get a list of different tasks to choose from instead of different contents
