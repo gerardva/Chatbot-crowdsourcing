@@ -64,8 +64,7 @@ class ReviewPipeline:
         content['reviewQuestion'] = elaborate_answer['question']['question']
         content['reviewAnswer'] = elaborate_answer['answer']
 
-        print(content)
-        return content
+        return {'data': content}
 
     def review_question_maker(self, elaborate_answer):
         original_answer = elaborate_answer['answer']
