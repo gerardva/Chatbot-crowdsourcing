@@ -15,24 +15,21 @@ class ApiIntegrationTest(unittest.TestCase):
     questionId = -1
 
     def test_api(self):
-        with self.subTest(0):
-            self.create_new_user()
-        with self.subTest(1):
-            self.post_task()
-        with self.subTest(2):
-            self.get_task()
-        with self.subTest(3):
-            self.get_location_based_task()
-        with self.subTest(4):
-            self.post_answer()
-        with self.subTest(5):
-            self.post_type_3_task()
-        with self.subTest(6):
-            self.post_task_with_option_answer()
-        with self.subTest(7):
-            self.can_not_answer_content()
-        with self.subTest(8):
-            self.make_review_pipeline()
+        tests = [
+            self.create_new_user,
+            self.post_task,
+            self.get_task,
+            self.get_location_based_task,
+            self.post_answer,
+            self.post_type_3_task,
+            self.post_task_with_option_answer,
+            self.can_not_answer_content,
+            self.make_review_pipeline,
+        ]
+
+        for test_func in tests:
+            with self.subTest(name=test_func.__name__):
+                test_func()
 
     def create_new_user(self):
         r = requests.post(base_api_url + '/worker/users', data=json.dumps({
