@@ -1,7 +1,9 @@
+from decimal import Decimal
+
 from api.code.apifuncs.api import QuoteResource
 from api.code.model import *
 
-REWARD = 0.05
+REWARD = '0.05'
 
 def add_api_routes(app):
     app.add_route('/quote', QuoteResource())
@@ -31,7 +33,7 @@ class WorkerAnswersResource:
             'success': True
         }
         if last_answer:
-            query = User.update(score=User.score + REWARD).where(User.id == user_id)
+            query = User.update(score=User.score + Decimal(REWARD)).where(User.id == user_id)
             query.execute()
             response['reward'] = REWARD
         resp.body = json.dumps(response)

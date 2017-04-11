@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from api.code.model import *
 from api.code.reviewPipeline import *
 import json
@@ -107,7 +109,7 @@ class ApiIntegrationTest(TestCase):
         self.questionId = r_as_json['questions'][0]['questionId']
 
     def get_location_based_task(self):
-        r = requests.get(base_api_url + '/worker/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
+        r = requests.get(base_api_url + '/worker/' + str(self.userId) + '/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
 
         print('location based task: ' + r.text)
         # r_as_json = json.loads(r.text)[0]
@@ -129,16 +131,16 @@ class ApiIntegrationTest(TestCase):
         print(r.text)
 
         r_as_json = json.loads(r.text)
-        self.assertIs(r_as_json['reward'], 0.05)
+        self.assertEqual(r_as_json['reward'], '0.05')
 
     def get_worker(self):
         r = requests.get('http://localhost:5000/worker/' + str(self.userId))
         r_as_json = json.loads(r.text)
         score = r_as_json['score']
-        self.assertIs(score, 0.05)
+        self.assertEqual(score, '0.05')
 
     def can_not_answer_content(self):
-        r = requests.post(base_api_url + '/worker/users', json.dumps({
+        r = requests.post(base_api_url + '/worker', json.dumps({
             'facebookId': 'legit id 2'
         }))
 
@@ -184,7 +186,7 @@ class ApiIntegrationTest(TestCase):
                              'found a task (with just one content) that should have been blocked by CanNotAnswer')
 
     def make_review_pipeline(self):
-        r = requests.post(base_api_url + '/worker/users', json.dumps({
+        r = requests.post(base_api_url + '/worker', json.dumps({
             'facebookId': 'legit id 2'
         }))
 
