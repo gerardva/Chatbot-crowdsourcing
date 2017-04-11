@@ -52,8 +52,8 @@ class ReviewPipeline:
     #     return {}
 
     def review_task_description_maker(self):
-        base_desc = 'review of the following task: '
-        r = requests.get(base_api_url+'/requester/tasks?taskId=1')
+        base_desc = 'Review of the following task: '
+        r = requests.get(base_api_url+'/requester/tasks?taskId='+str(self.task_id))
         r_as_json = r.json()
         base_desc += r_as_json['description']
         return base_desc
@@ -69,7 +69,7 @@ class ReviewPipeline:
         original_question = elaborate_answer['question']['question']
 
         review_question = {
-            'question': 'is \"' +
+            'question': 'Is \"' +
                         original_answer +
                         '\" a good answer for the question: \"' +
                         original_question +
@@ -100,7 +100,7 @@ class ReviewPipeline:
             for answer in answer_group:
                 if answer['answer'] == 'Yes':
                     yes_count += 1
-            if yes_count<self.amount_of_reviews:
+            if yes_count < self.amount_of_reviews:
                 grouped_answers.remove(answer_group)
 
         result = []

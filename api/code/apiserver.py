@@ -1,5 +1,3 @@
-import json
-
 from api.code.apifuncs.api import QuoteResource
 from api.code.model import *
 
@@ -21,7 +19,7 @@ class WorkerAnswersResource:
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
         answer = Answer.create(answer=req_as_json['answer'],
-                               userId=req_as_json['userId'],
+                               userId=user_id,
                                contentId=req_as_json['contentId'],
                                questionId=req_as_json['questionId'])
 
@@ -61,7 +59,8 @@ class WorkerTasksResource:
                 (Location.latitude >= min_latitude) &
                 (Location.latitude <= max_latitude)).order_by(fn.rand())
 
-        contents = contents.join(CanNotAnswer, JOIN_LEFT_OUTER).where(CanNotAnswer.userId != user_id)
+        contents = contents.join(CanNotAnswer, JOIN.LEFT_OUTER).where(
+            (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
 
         if contents is None or len(contents) == 0:
             # when no contents exist, nothing can be returned

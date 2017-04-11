@@ -1,7 +1,7 @@
 import requests
 from chatbot.logger import log
 
-api_url = "https://fathomless-cove-38602.herokuapp.com"  # no trailing slash
+api_url = "http://localhost:5000"  # no trailing slash
 api_methods = {
     'GET': requests.get,
     'POST': requests.post,
@@ -26,8 +26,8 @@ def call_api(method, url, data=None):
     return r.json()
 
 
-def get_random_task():
-    res = call_api("GET", "/worker/tasks?order=random&limit=1")
+def get_random_task(user_id):
+    res = call_api("GET", "/worker/{user_id}/tasks?order=random&limit=1".format(user_id=user_id))
 
     if not res:
         return False
@@ -36,8 +36,8 @@ def get_random_task():
     return task
 
 
-def get_tasks():
-    res = call_api("GET", "/worker/tasks?order=random&limit=3")
+def get_tasks(user_id):
+    res = call_api("GET", "/worker/{user_id}/tasks?order=random&limit=3".format(user_id=user_id))
 
     if not res:
         return False
@@ -48,12 +48,11 @@ def get_tasks():
 def post_answer(answer, user_id, question_id, content_id):
     data = {
         "answer": answer,
-        "userId": user_id,
         "questionId": question_id,
         "contentId": content_id
     }
 
-    res = call_api("POST", "/worker/answers", data)
+    res = call_api("POST", "/worker/{user_id}/answers".format(user_id=user_id), data)
     if not res:
         return False
 
