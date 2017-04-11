@@ -58,7 +58,7 @@ def post_answer(answer, user_id, question_id, content_id, last):
         "contentId": content_id
     }
 
-    res = call_api("POST", "/worker/{user_id}/answers?last=".format(user_id=user_id) + "true" if last else "false", data)
+    res = call_api("POST", "/worker/{user_id}/answers?last={last}".format(user_id=user_id, last=last), data)
     if not res:
         return False
 
@@ -69,7 +69,7 @@ def get_user(facebook_id):
         'facebookId': facebook_id
     }
 
-    res = call_api("POST", "/worker/users", data)
+    res = call_api("POST", "/worker", data)
     if not res:
         return False
 

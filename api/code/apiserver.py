@@ -7,8 +7,8 @@ def add_api_routes(app):
     app.add_route('/quote', QuoteResource())
     app.add_route('/worker/{user_id}/tasks', WorkerTasksResource())
     app.add_route('/worker/{user_id}/answers', WorkerAnswersResource())
-    app.add_route('/worker/users', WorkerUsersResource())
-    app.add_route('/worker/{user_id}', WorkerResource())
+    app.add_route('/worker', WorkerResource())
+    app.add_route('/worker/{user_id}', WorkerUserIdResource())
     app.add_route('/requester/tasks', RequesterTasksResource())
     app.add_route('/requester/tasks/{task_id}/answers', RequesterTasksAnswersResource())
 
@@ -17,7 +17,7 @@ mysql_db.create_tables([User, Task, Question, Content, Answer, Location, CanNotA
 
 class WorkerAnswersResource:
     def on_post(self, req, resp, user_id):
-        last_answer = req.get_param("last") == "true"
+        last_answer = req.get_param_as_bool("last")
 
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
@@ -129,7 +129,7 @@ class WorkerTasksResource:
         resp.body = json.dumps(tasks)
 
 
-class WorkerUsersResource:
+class WorkerResource:
     def on_post(self, req, resp):
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
         facebook_id = req_as_json['facebookId']
@@ -147,7 +147,7 @@ class WorkerUsersResource:
             resp.body = json.dumps({'error': 'no facebook id is provided, other platforms are not supported at this time.'})
 
 
-class WorkerResource(object):
+class WorkerUserIdResource(object):
     def on_get(self, req, resp, user_id):
         user = User.get(User.id == user_id)
         response = {

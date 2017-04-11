@@ -12,10 +12,6 @@ WAITRESS_PORT = 5000
 base_api_url = 'http://localhost:'+str(WAITRESS_PORT)
 
 
-def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-
-
 class ApiIntegrationTest(TestCase):
     userId = -1
     contentId = -1
@@ -41,7 +37,7 @@ class ApiIntegrationTest(TestCase):
     def create_new_user(self):
         # use UUID as facebookId, so multiple runs of tests don't fail due to updating the same user
         facebook_id = str(uuid.uuid1())
-        r = requests.post(base_api_url + '/worker/users', data=json.dumps({
+        r = requests.post(base_api_url + '/worker', data=json.dumps({
             'facebookId': facebook_id
         }))
 
@@ -133,13 +129,13 @@ class ApiIntegrationTest(TestCase):
         print(r.text)
 
         r_as_json = json.loads(r.text)
-        self.assertTrue(isclose(r_as_json['reward'], 0.05))
+        self.assertIs(r_as_json['reward'], 0.05)
 
     def get_worker(self):
         r = requests.get('http://localhost:5000/worker/' + str(self.userId))
         r_as_json = json.loads(r.text)
         score = r_as_json['score']
-        self.assertTrue(isclose(score, 0.05))
+        self.assertIs(score, 0.05)
 
     def can_not_answer_content(self):
         r = requests.post(base_api_url + '/worker/users', json.dumps({
