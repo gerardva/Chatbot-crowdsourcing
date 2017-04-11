@@ -38,29 +38,32 @@ def handle_message(message):
 
 
 def handle_message_idle(message):
+    sender_id = message["sender_id"]
+    user_id = user_states[sender_id]["user_id"]
+
     # Handle giving task
     if message.get("coordinates") or message.get("quick_reply_payload") == "random_task" or \
                     message["text"] == "Give me a random task":
-        task = Api.get_random_task()
+        task = Api.get_random_task(user_id)
         if not task:
-            Facebook.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
+            Facebook.send_message(sender_id, "Sorry, something went wrong when retrieving your task")
             return
 
         questions = task["questions"]
         task_content = task["content"]
 
-        send_task(task_content, questions, message["sender_id"], task)
+        send_task(task_content, questions, sender_id, task)
 
     # Handle giving multiple tasks
     elif message.get("quick_reply_payload") == "list_task" or message["text"] == "Give me a list of tasks to choose from":
-        tasks = Api.get_tasks()
+        tasks = Api.get_tasks(user_id)
         if not tasks:
-            Facebook.send_message(message["sender_id"], "Sorry, something went wrong when retrieving your task")
+            Facebook.send_message(sender_id, "Sorry, something went wrong when retrieving your task")
             return
 
-        user_states[message["sender_id"]] = {
+        user_states[sender_id] = {
             "state": "given_task_options",
-            "user_id": user_states[message["sender_id"]]["user_id"],
+            "user_id": user_id,
             "tasks": tasks
         }
         log(user_states)
@@ -75,7 +78,7 @@ def handle_message_idle(message):
                 "payload": "task_" + str(i+1)
             })
 
-        Facebook.send_message(message["sender_id"], mes, quick_replies)
+        Facebook.send_message(sender_id, mes, quick_replies)
 
     # Handle initial message
     else:  # str.lower(message["text"]) in greetings:
@@ -91,8 +94,8 @@ def handle_message_idle(message):
             "payload": "list_task"
         }]
 
-        Facebook.send_message(message["sender_id"], "What's up? I can give you a task, but if you send your location "
-                                                    "I can give you even cooler tasks.", quick_replies)
+        Facebook.send_message(sender_id, "What's up? I can give you a task, but if you send your location "
+                                         "I can give you even cooler tasks.", quick_replies)
 
 
 def handle_message_given_task_options(message):

@@ -26,8 +26,8 @@ def call_api(method, url, data=None):
     return r.json()
 
 
-def get_random_task():
-    res = call_api("GET", "/worker/tasks?order=random&limit=1")
+def get_random_task(user_id):
+    res = call_api("GET", "/worker/{user_id}/tasks?order=random&limit=1".format(user_id=user_id))
 
     if not res:
         return False
@@ -36,8 +36,8 @@ def get_random_task():
     return task
 
 
-def get_tasks():
-    res = call_api("GET", "/worker/tasks?order=random&limit=3")
+def get_tasks(user_id):
+    res = call_api("GET", "/worker/{user_id}/tasks?order=random&limit=3".format(user_id=user_id))
 
     if not res:
         return False
