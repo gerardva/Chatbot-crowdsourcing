@@ -60,7 +60,7 @@ class WorkerTasksResource:
                 (Location.latitude >= min_latitude) &
                 (Location.latitude <= max_latitude)).order_by(fn.rand())
 
-        contents = contents.join(CanNotAnswer, JOIN.LEFT_OUTER).where(
+        contents = contents.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
             (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
 
         if contents is None or len(contents) == 0:

@@ -48,7 +48,8 @@ def handle_message_idle(message):
     # Handle giving task
     if message.get("coordinates") or message.get("quick_reply_payload") == "random_task" or \
        message["text"] == "Give me a random task":
-        task = Api.get_random_task(user_id)
+        coordinates = message.get("coordinates", {})
+        task = Api.get_random_task(user_id, coordinates.get("long"), coordinates.get("lat"))
         if not task:
             Facebook.send_message(sender_id, "Unfortunately, I could not find a task for you. This most likely means "
                                   "that there are no available tasks at the moment. Be sure to check back later!")

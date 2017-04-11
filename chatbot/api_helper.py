@@ -26,8 +26,14 @@ def call_api(method, url, data=None):
     return r.json()
 
 
-def get_random_task(user_id):
-    res = call_api("GET", "/worker/{user_id}/tasks?order=random&limit=1".format(user_id=user_id))
+def get_random_task(user_id, longitude=None, latitude=None):
+    location = ""
+    order = "random"
+    if longitude is not None and latitude is not None:
+        location = "&range=0.02&longitude={longitude}&latitude={latitude}".format(longitude=str(longitude),latitude=str(latitude))
+        order = "location"
+    log("Location: " + location)
+    res = call_api("GET", "/worker/{user_id}/tasks?order={order}&limit=1{location}".format(user_id=user_id, location=location, order=order))
 
     if not res:
         return False
