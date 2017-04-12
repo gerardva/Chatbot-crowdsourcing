@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from api.code.model import *
-from api.code.reviewPipeline import *
+from pipelines.reviewPipeline import *
 import json
 import uuid
 from unittest import TestCase
