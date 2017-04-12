@@ -4,10 +4,18 @@ import chatbot.facebook_helper as Facebook
 from chatbot.logger import log
 from decimal import Decimal
 import re
+import random
 
 user_states = {}
 greetings = {"hi", "hey", "hello", "greetings"}
-
+stickers = {
+    "money": [
+        "https://scontent.xx.fbcdn.net/v/t39.1997-6/p100x100/10540972_700042826698549_1238169619_n.png?_nc_ad=z-m&oh=2a5e01b58a747a66478907b91c582743&oe=59561F0B",
+        "https://scontent.xx.fbcdn.net/v/t39.1997-6/p100x100/851553_233289396829491_1939290925_n.png?_nc_ad=z-m&oh=4540b6d029e2fde287e34478e250e013&oe=599732C4",
+        "https://scontent.xx.fbcdn.net/v/t39.1997-6/p100x100/11409233_850975754950861_1411369750_n.png?_nc_ad=z-m&oh=292b925ffea0d81d2b5e8a7f1b047cec&oe=5986B429",
+        "https://scontent.xx.fbcdn.net/v/t39.1997-6/p100x100/10956909_698963033549506_668988407_n.png?_nc_ad=z-m&oh=19d41367fa41cbeaf9ab04f42241f8b8&oe=5995E1DC",
+    ]
+}
 
 def handle_postback_message(messaging_event):
     message = construct_postback_message(messaging_event)
@@ -251,7 +259,9 @@ def handle_message_given_task(message):
         return
 
     if current_question == len(questions) - 1:
-        Facebook.send_message(message["sender_id"], "Thank you for your answer, you're done!")
+        Facebook.send_message(message["sender_id"], "Thank you for your answer, you're done! "
+                                                    "You've earned €0,05 completing this task.")
+        Facebook.send_image(message["sender_id"], random.choice(stickers["money"]))
         user_state["state"] = "idle"
         user_state["data"] = None
 
