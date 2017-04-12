@@ -22,7 +22,10 @@ def handle_message(message):
 
     # If we haven't seen the user before, check if the user is registered
     if user_states.get(sender_id) is None:
-        get_user(sender_id)
+        success = get_user(sender_id)
+        if not success:
+            Facebook.send_message(sender_id, "This is embarrassing, I'm having issues contacting the NSA for your "
+                                             "private information. Please let the app creators know.")
 
     user_state = user_states[sender_id]  # This should not be None after get_user
 
@@ -44,6 +47,7 @@ def handle_message(message):
 def handle_message_idle(message):
     sender_id = message["sender_id"]
     user_id = user_states[sender_id]["user_id"]
+    name = user_states[sender_id]["name"]
 
     # Handle giving task
     if message.get("coordinates") or message.get("quick_reply_payload") == "random_task" or \
@@ -100,8 +104,11 @@ def handle_message_idle(message):
             "payload": "list_task"
         }]
 
-        Facebook.send_message(sender_id, "Hey, what do you want to do? I can give you a random task or a list of tasks to choose from. If you send your location "
-                                                    "I can give you a task which can be done near you.", quick_replies)
+        Facebook.send_message(sender_id, "Hey " + name + "! "
+                                         "What do you want to do today? "
+                                         "I can give you a random task or a list of tasks to choose from. "
+                                         "If you send your location I can give you a task which can be done near you.",
+                              quick_replies)
 
 
 def handle_message_given_task_options(message):
@@ -300,8 +307,15 @@ def get_user(sender_id):
     if not user:
         return False
 
+    facebook_data = Facebook.get_user(sender_id)
+    if not facebook_data:
+        return False
+
     if user_states.get(sender_id) is None:
         user_states[sender_id] = {
             "state": "idle",
-            "user_id": user["userId"]
+            "user_id": user["userId"],
+            "name": facebook_data["first_name"]
         }
+
+    return True

@@ -86,3 +86,18 @@ def send(data):
         return False
 
     return True
+
+
+def get_user(facebook_id):
+    fields = "first_name,last_name,profile_pic,locale,timezone,gender"
+    access_token = os.environ["PAGE_ACCESS_TOKEN"]
+
+    r = requests.get("https://graph.facebook.com/v2.8/{user_id}?fields={fields}&access_token={access_token}"
+                     .format(user_id=facebook_id, fields=fields, access_token=access_token))
+
+    if r.status_code != 200:
+        log("{status_code} encountered when sending Facebook data".format(status_code=r.status_code))
+        log(r.text)
+        return False
+
+    return r.json()
