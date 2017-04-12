@@ -51,25 +51,34 @@ def get_tasks(user_id):
     return res
 
 
-def post_answer(answer, user_id, question_id, content_id):
+def post_answer(answer, user_id, question_id, content_id, last):
     data = {
         "answer": answer,
         "questionId": question_id,
         "contentId": content_id
     }
 
-    res = call_api("POST", "/worker/{user_id}/answers".format(user_id=user_id), data)
+    res = call_api("POST", "/worker/{user_id}/answers?last={last}".format(user_id=user_id, last=last), data)
     if not res:
         return False
 
     return True
+
 
 def get_user(facebook_id):
     data = {
         'facebookId': facebook_id
     }
 
-    res = call_api("POST", "/worker/users", data)
+    res = call_api("POST", "/worker", data)
+    if not res:
+        return False
+
+    return res
+
+
+def get_user_data(user_id):
+    res = call_api("GET", "/worker/{user_id}".format(user_id=user_id))
     if not res:
         return False
 

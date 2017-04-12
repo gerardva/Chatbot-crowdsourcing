@@ -12,7 +12,7 @@ class BaseModel(Model):
 
 class User(BaseModel):
     id = PrimaryKeyField()
-    score = FloatField(default=0.0)
+    score = DecimalField(default=0.0)
     facebookId = TextField()
 
     def as_json(self):
