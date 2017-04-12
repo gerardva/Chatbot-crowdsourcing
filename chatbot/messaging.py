@@ -3,6 +3,7 @@ import chatbot.api_helper as Api
 import chatbot.facebook_helper as Facebook
 from chatbot.logger import log
 from decimal import Decimal
+import re
 
 user_states = {}
 greetings = {"hi", "hey", "hello", "greetings"}
@@ -79,17 +80,21 @@ def handle_message_idle(message):
         }
         log(user_states)
 
-        quick_replies = []
-        mes = "I have " + str(len(tasks)) + " tasks for you: \n"
+        elements = []
+        mes = "I have " + str(len(tasks)) + " tasks for you:"
         for i, task in enumerate(tasks):
-            mes += "Task " + str(i+1) + ": " + task["description"] + "\n"
-            quick_replies.append({
-                "content_type": "text",
+            elements.append({
                 "title": "Task " + str(i+1),
-                "payload": "task_" + str(i+1)
+                "subtitle": task["description"],
+                "buttons": [{
+                    "type": "postback",
+                    "title": "Do task " + str(i+1),
+                    "payload": "task_" + str(i+1)
+                }]
             })
 
-        Facebook.send_message(sender_id, mes, quick_replies)
+        Facebook.send_message(sender_id, mes)
+        Facebook.send_list(sender_id, elements)
 
     # Handle initial message
     else:  # str.lower(message["text"]) in greetings:
@@ -126,21 +131,19 @@ def handle_message_idle(message):
 
 
 def handle_message_given_task_options(message):
-    chosen_task_id = -1
-    if message.get("quick_reply_payload"):
+    message_text = message["text"]
+    if message.get("postback"):
         try:
-            chosen_task_id = int(message["quick_reply_payload"][5:])
-        except:
-            pass
-    else:
-        try:
-            chosen_task_id = int(message["text"][5:])
+            message_text = message["postback"]
         except:
             pass
 
-    if chosen_task_id == -1:
+    found_digits = re.findall("\d+", message_text)
+
+    if len(found_digits) < 1:
         Facebook.send_message(message["sender_id"], "I did not understand your choice of task")
         return
+    chosen_task_id = int(found_digits[0])
 
     tasks = user_states[message["sender_id"]]["data"]["tasks"]
     chosen_task = tasks[chosen_task_id - 1]

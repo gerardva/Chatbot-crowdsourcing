@@ -70,6 +70,29 @@ def send_image(recipient_id, image_url):
     return res
 
 
+def send_list(recipient_id, elements):
+    log("sending list of {num} elements to {recipient}".format(recipient=recipient_id, num=len(elements)))
+
+    data = json.dumps({
+        "recipient": {
+            "id": recipient_id
+        },
+        "message": {
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    "template_type": "list",
+                    "top_element_style": "compact",
+                    "elements": elements
+                }
+            }
+        }
+    })
+
+    res = send(data)
+    return res
+
+
 def send(data):
     params = {
         "access_token": os.environ["PAGE_ACCESS_TOKEN"]
