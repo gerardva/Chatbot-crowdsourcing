@@ -1,5 +1,5 @@
 from api.code.model import *
-from api.code.reviewPipeline import *
+from pipelines.reviewPipeline import *
 import json
 import unittest
 import requests

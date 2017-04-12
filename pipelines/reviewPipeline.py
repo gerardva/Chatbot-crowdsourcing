@@ -1,5 +1,4 @@
 from itertools import groupby
-from api.code.model import *
 
 import requests
 import json
@@ -111,14 +110,17 @@ class ReviewPipeline:
         for key, answer_group in grouped_answers.items():
             question_id = answer_group[0]['questionId']
             content_id = answer_group[0]['contentId']
-            # todo make question fetchable, so model can be removed from this code
-            # then the api and pipeline are fully seperate again
-            review_question = Question.get(Question.id == question_id)
 
-            print(review_question.as_json())
+            r = requests.get('{base_api_url}/requester/questions/{question_id}'.format(
+                base_api_url=base_api_url,
+                question_id=question_id)
+            )
+            review_question = json.loads(r.text)
+
+            print(review_question)
             # todo allow a way of storing the original question and answer without this ugly thing.
             # maybe a private data area within the content?
-            res = re.search('\"(.*)\".*\"(.*)\"', review_question.question)
+            res = re.search('\"(.*)\".*\"(.*)\"', review_question['question'])
             answer = res.group(1)
             question = res.group(2)
             result.append({

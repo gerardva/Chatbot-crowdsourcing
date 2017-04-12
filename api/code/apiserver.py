@@ -7,6 +7,7 @@ def add_api_routes(app):
     app.add_route('/worker/{user_id}/tasks', WorkerTasksResource())
     app.add_route('/worker/{user_id}/answers', WorkerAnswersResource())
     app.add_route('/worker/users', WorkerUsersResource())
+    app.add_route('/requester/questions/{question_id}', RequesterQuestionResource())
     app.add_route('/requester/tasks', RequesterTasksResource())
     app.add_route('/requester/tasks/{task_id}/answers', RequesterTasksAnswersResource())
 
@@ -198,6 +199,11 @@ def add_location(content_id, location_as_json):
                                latitude=location_as_json['latitude'],
                                longitude=location_as_json['longitude'])
     location.save()
+
+class RequesterQuestionResource:
+    def on_get(self, req, resp, question_id):
+        question = Question.get(Question.id==question_id)
+        resp.body = json.dumps(question.as_json())
 
 
 class RequesterTasksAnswersResource:
