@@ -1,93 +1,52 @@
+from decimal import Decimal
+
 from api.code.apifuncs.api import QuoteResource
 from api.code.model import *
 
+REWARD = '0.05'
 
 def add_api_routes(app):
     app.add_route('/quote', QuoteResource())
     app.add_route('/worker/{user_id}/tasks', WorkerTasksResource())
     app.add_route('/worker/{user_id}/answers', WorkerAnswersResource())
-    app.add_route('/worker/users', WorkerUsersResource())
+    app.add_route('/worker', WorkerResource())
+    app.add_route('/worker/{user_id}', WorkerUserIdResource())
+    app.add_route('/requester/questions/{question_id}', RequesterQuestionResource())
     app.add_route('/requester/tasks', RequesterTasksResource())
     app.add_route('/requester/tasks/{task_id}/answers', RequesterTasksAnswersResource())
-
 
 mysql_db.create_tables([User, Task, Question, Content, Answer, Location, CanNotAnswer], safe=True)
 
 
 class WorkerAnswersResource:
     def on_post(self, req, resp, user_id):
+        last_answer = req.get_param_as_bool("last")
+
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
 
         answer = Answer.create(answer=req_as_json['answer'],
-                               userId=user_id,
-                               contentId=req_as_json['contentId'],
-                               questionId=req_as_json['questionId'])
+                               user=user_id,
+                               content=req_as_json['contentId'],
+                               question=req_as_json['questionId'])
 
         answer.save()
-
-        resp.body = json.dumps({
-            'success': True,
-            'reward': 100000000000
-        })
+        response = {
+            'success': True
+        }
+        if last_answer:
+            query = User.update(score=User.score + Decimal(REWARD)).where(User.id == user_id)
+            query.execute()
+            response['reward'] = REWARD
+        resp.body = json.dumps(response)
 
 
 class WorkerTasksResource:
     def on_get(self, req, resp, user_id):
-        # read parameters
-        limit = req.get_param("limit")
-        order = req.get_param("order")
-
-        # start building query
-        contents = None
-        if order == "random":
-            contents = Content.select()
-        elif order == "location":
-            # does not use circle dist, but square with sides of 2 x maxDist
-            max_dist = float(req.get_param("range"))
-            longitude = float(req.get_param("longitude"))
-            latitude = float(req.get_param("latitude"))
-
-            max_longitude = longitude + max_dist
-            min_longitude = longitude - max_dist
-            max_latitude = latitude + max_dist
-            min_latitude = latitude - max_dist
-            # get location within square of sides r with long and lat as center, randomize these points
-            # (for limiting alter on for example)
-            contents = Content.select(Content, Location).group_by(Content.taskId).join(Location).where(
-                (Location.longitude >= min_longitude) &
-                (Location.longitude <= max_longitude) &
-                (Location.latitude >= min_latitude) &
-                (Location.latitude <= max_latitude))
-
-        # each of these filters may make contents none, so repeated checks are needed
-        if contents is not None:
-            contents = contents.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.contentId)).where(
-                (CanNotAnswer.userId.is_null()) | (CanNotAnswer.userId != user_id))
-
-        if contents is not None:
-            contents = contents.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.contentId)).where(
-                (Answer.userId.is_null()) | (Answer.userId != user_id))
-
-        if contents is not None:
-            contents = contents.group_by(Content.taskId).order_by(fn.rand())
-
-        if contents is None or len(contents) == 0:
-            # when no contents exist, nothing can be returned
-            resp.body = json.dumps({})
-            return
-
-        if limit:
-            try:
-                limit_int = int(limit)
-                contents = contents.limit(limit_int)
-            except ValueError:
-                # ignore limit parameter if it is not an integer
-                pass
+        contents = self.build_get_tasks_query(req, user_id)
 
         tasks = []
-        # TODO: query by task, so user can get a list of different tasks to choose from instead of different contents
         for content in contents:
-            questions = Question.select(Question, Task).join(Task).where(Task.id == content.taskId).order_by(Question.index)
+            questions = content.task.questions.order_by(Question.index)
 
             questions_json = []
             for question in questions:
@@ -98,7 +57,7 @@ class WorkerTasksResource:
                     'answerSpecification': question.answerSpecificationJSON
                 })
 
-            task = content.taskId
+            task = content.task
 
             task_data = {
                 'taskId': task.id,
@@ -109,7 +68,6 @@ class WorkerTasksResource:
             }
 
             try:
-                # TODO: i believe kilian already made the relation 1 to 0..1, so then the .first() might be redundant.
                 location = content.location.get()
                 task_data['location'] = {
                     'latitude': location.latitude,
@@ -122,8 +80,67 @@ class WorkerTasksResource:
             tasks.append(task_data)
         resp.body = json.dumps(tasks)
 
+    @staticmethod
+    def build_get_tasks_query(req, user_id):
+        # read parameters
+        limit = req.get_param("limit")
+        order = req.get_param("order", default="random")
 
-class WorkerUsersResource:
+        # start building subquery
+        # the subquery returns a single content id per task, for all contents
+        # that match the worker's query and the worker is allowed to do
+        subquery = None
+        if order == "random":
+            subquery = Content.select(fn.Min(Content.id))
+        elif order == "location":
+            subquery = WorkerTasksResource.build_location_subquery(req)
+
+        # filter out contents that this worker can not answer
+        # (e.g. due to having answered the original task that this is a review task of)
+        subquery = subquery.join(CanNotAnswer, JOIN.LEFT_OUTER, on=(Content.id == CanNotAnswer.content)).where(
+            (CanNotAnswer.user.is_null()) | (CanNotAnswer.user != user_id))
+
+        # filter out contents that this user has already answered
+        subquery = subquery.join(Answer, JOIN.LEFT_OUTER, on=(Content.id == Answer.content)).where(
+            (Answer.user.is_null()) | (Answer.user != user_id))
+
+        # group by task, meaning the minimum content id per task is returned
+        subquery = subquery.group_by(Content.task)
+
+        # get a content for each task
+        # we join it with Task to prevent N+1 queries to get the associated task later
+        contents = Content.select(Content, Task).join(Task).where(Content.id << subquery)
+
+        if limit:
+            try:
+                limit_int = int(limit)
+                contents = contents.limit(limit_int)
+            except ValueError:
+                # ignore limit parameter if it is not an integer
+                pass
+        return contents
+
+    @staticmethod
+    def build_location_subquery(req):
+        # does not use circle dist, but square with sides of 2 x maxDist
+        max_dist = float(req.get_param("range"))
+        longitude = float(req.get_param("longitude"))
+        latitude = float(req.get_param("latitude"))
+
+        max_longitude = longitude + max_dist
+        min_longitude = longitude - max_dist
+        max_latitude = latitude + max_dist
+        min_latitude = latitude - max_dist
+        # get location within square of sides r with long and lat as center, randomize these points
+        # (for limiting alter on for example)
+        return Content.select(fn.Min(Content.id)).join(Location).where(
+            (Location.longitude >= min_longitude) &
+            (Location.longitude <= max_longitude) &
+            (Location.latitude >= min_latitude) &
+            (Location.latitude <= max_latitude))
+
+
+class WorkerResource:
     def on_post(self, req, resp):
         req_as_json = json.loads(req.stream.read().decode('utf-8'))
         facebook_id = req_as_json['facebookId']
@@ -141,6 +158,21 @@ class WorkerUsersResource:
             resp.body = json.dumps({'error': 'no facebook id is provided, other platforms are not supported at this time.'})
 
 
+class WorkerUserIdResource(object):
+    def on_get(self, req, resp, user_id):
+        user = User.get(User.id == user_id)
+        response = {
+            'facebookId': user.facebookId,
+            'score': str(user.score)
+        }
+        resp.body = json.dumps(response)
+
+
+    # def on_get(self, req, resp):
+    #     user = User.create()
+    #     resp.body = json.dumps({'userId': user.id})
+
+
 class RequesterTasksResource:
     def on_get(self, req, resp):
         task_id = req.get_param('taskId')
@@ -152,7 +184,7 @@ class RequesterTasksResource:
 
     def on_post(self, req, resp):
         request_dict = json.loads(req.stream.read().decode('utf-8'))
-        task = Task.create(userId=request_dict['userId'],
+        task = Task.create(user=request_dict['userId'],
                            description=request_dict['description'])
         task.save()
 
@@ -162,15 +194,15 @@ class RequesterTasksResource:
             new_question = Question.create(index=index,
                                            question=question_string,
                                            answerSpecificationJSON=json.dumps(answer_specification),
-                                           taskId=task.id)
+                                           task=task.id)
 
         i = 0
         for content in request_dict['content']:
             content_id = None
             if 'data' in content:
-                content_id = Content.create(dataJSON=json.dumps(content['data']), taskId=task.id)
+                content_id = Content.create(dataJSON=json.dumps(content['data']), task=task.id)
             else:
-                content_id = Content.create(taskId=task.id)
+                content_id = Content.create(task=task.id)
             if 'location' in content:
                 add_location(content_id, content['location'])
 
@@ -179,17 +211,22 @@ class RequesterTasksResource:
             if 'canNotMake' in request_dict:
                 can_not_be_made_by_users = request_dict['canNotMake'][i]
                 for userId in can_not_be_made_by_users:
-                    can_not_make_id = CanNotAnswer.create(userId=userId, contentId=content_id)
+                    can_not_make_id = CanNotAnswer.create(user=userId, content=content_id)
             i += 1
 
         resp.body = json.dumps({'taskId': task.id})
 
 
 def add_location(content_id, location_as_json):
-    location = Location.create(contentId=content_id,
+    location = Location.create(content=content_id,
                                latitude=location_as_json['latitude'],
                                longitude=location_as_json['longitude'])
     location.save()
+
+class RequesterQuestionResource:
+    def on_get(self, req, resp, question_id):
+        question = Question.get(Question.id==question_id)
+        resp.body = json.dumps(question.as_json())
 
 
 class RequesterTasksAnswersResource:
@@ -210,16 +247,16 @@ class RequesterTasksAnswersResource:
         for answer in answers:
             result_answer = {
                 'answer': answer.answer,
-                'contentId': answer.contentId.id,
-                'questionId': answer.questionId.id,
-                'userId': answer.userId.id,
-                'taskId': answer.contentId.taskId.id
+                'contentId': answer.content.id,
+                'questionId': answer.question.id,
+                'userId': answer.user.id,
+                'taskId': answer.content.task.id
             }
             if elaborate:
-                result_answer['content'] = answer.contentId.as_json()
-                result_answer['user'] = answer.userId.as_json()
-                result_answer['question'] = answer.questionId.as_json()
-                result_answer['task'] = answer.contentId.taskId.as_json()
+                result_answer['content'] = answer.content.as_json()
+                result_answer['user'] = answer.user.as_json()
+                result_answer['question'] = answer.question.as_json()
+                result_answer['task'] = answer.content.task.as_json()
 
             answers_list.append(result_answer)
 

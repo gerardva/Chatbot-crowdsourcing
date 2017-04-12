@@ -2,7 +2,7 @@ import requests
 import json
 
 def main():
-    r = requests.post('http://localhost:5000/worker/users', data=json.dumps({
+    r = requests.post('http://localhost:5000/worker/', data=json.dumps({
         'facebookId': 'this is totally a legit facebook id'
     }))
 

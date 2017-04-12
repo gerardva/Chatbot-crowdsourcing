@@ -90,6 +90,18 @@ def handle_message_idle(message):
 
         Facebook.send_message(sender_id, mes, quick_replies)
 
+    # Handle request for balance
+    elif message["text"] == "What is my balance?":
+        user_data = Api.get_user_data(user_id)
+
+        if not user_data:
+            Facebook.send_message(sender_id, "I'm sorry, I could not retrieve your balance. "
+                                             "I'm sure you are doing a wonderful job!")
+            return
+
+        balance = user_data["score"]
+        Facebook.send_message(sender_id, "You have earned €{balance} so far".format(balance=balance))
+
     # Handle initial message
     else:  # str.lower(message["text"]) in greetings:
         quick_replies = [{
@@ -229,7 +241,7 @@ def handle_message_given_task(message):
     question_id = questions[current_question]["questionId"]
     content_id = user_state["content_id"]
 
-    res = Api.post_answer(answer, user_id, question_id, content_id)
+    res = Api.post_answer(answer, user_id, question_id, content_id, current_question == len(questions) - 1)
 
     if not res:
         Facebook.send_message(message["sender_id"], "Sorry, something went wrong when submitting your answer")
