@@ -1,6 +1,11 @@
+from decimal import Decimal
+
 from api.code.model import *
 from pipelines.reviewPipeline import *
 import json
+import uuid
+from unittest import TestCase
+
 import unittest
 import requests
 
@@ -9,7 +14,7 @@ WAITRESS_PORT = 5000
 base_api_url = 'http://localhost:'+str(WAITRESS_PORT)
 
 
-class ApiIntegrationTest(unittest.TestCase):
+class ApiIntegrationTest(TestCase):
     userId = -1
     contentId = -1
     questionId = -1
@@ -32,8 +37,10 @@ class ApiIntegrationTest(unittest.TestCase):
                 test_func()
 
     def create_new_user(self):
-        r = requests.post(base_api_url + '/worker/users', data=json.dumps({
-            'facebookId': 'this is totally a legit facebook id'
+        # use UUID as facebookId, so multiple runs of tests don't fail due to updating the same user
+        facebook_id = str(uuid.uuid1())
+        r = requests.post(base_api_url + '/worker', data=json.dumps({
+            'facebookId': facebook_id
         }))
 
         print('returned user json: ' + r.text)
@@ -103,29 +110,38 @@ class ApiIntegrationTest(unittest.TestCase):
         self.questionId = r_as_json['questions'][0]['questionId']
 
     def get_location_based_task(self):
-        r = requests.get(base_api_url + '/worker/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
+        r = requests.get(base_api_url + '/worker/' + str(self.userId) + '/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
 
-        print('location based task: '+r.text)
-        #r_as_json = json.loads(r.text)[0]
-        #self.contentId = r_as_json['contentId']
-        #self.questionId = r_as_json['questions'][0]['questionId']
+        print('location based task: ' + r.text)
+        # r_as_json = json.loads(r.text)[0]
+        # self.contentId = r_as_json['contentId']
+        # self.questionId = r_as_json['questions'][0]['questionId']
 
     def post_answer(self):
         print('userId: ' + str(self.userId))
         print('contentId: ' + str(self.contentId))
         print('questionId: ' + str(self.questionId))
 
-        r = requests.post(base_api_url + '/worker/answers', data=json.dumps({
+        r = requests.post(base_api_url + '/worker/' + str(self.userId) + '/answers?last=true', data=json.dumps({
             'userId': self.userId,
             'contentId': self.contentId,
             'questionId': self.questionId,
-            'answer': 'Berghotel Grosse Scheidegg'
+            'answer': 'Berghotel Grosse Scheidegg',
         }))
 
         print(r.text)
 
+        r_as_json = json.loads(r.text)
+        self.assertEqual(r_as_json['reward'], '0.05')
+
+    def get_worker(self):
+        r = requests.get('http://localhost:5000/worker/' + str(self.userId))
+        r_as_json = json.loads(r.text)
+        score = r_as_json['score']
+        self.assertEqual(score, '0.05')
+
     def can_not_answer_content(self):
-        r = requests.post(base_api_url + '/worker/users', json.dumps({
+        r = requests.post(base_api_url + '/worker', json.dumps({
             'facebookId': 'legit id 2'
         }))
 
@@ -171,7 +187,7 @@ class ApiIntegrationTest(unittest.TestCase):
                              'found a task (with just one content) that should have been blocked by CanNotAnswer')
 
     def make_review_pipeline(self):
-        r = requests.post(base_api_url + '/worker/users', json.dumps({
+        r = requests.post(base_api_url + '/worker', json.dumps({
             'facebookId': 'legit id 2'
         }))
 
