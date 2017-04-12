@@ -138,8 +138,8 @@ def handle_message_given_task_options(message):
         except:
             pass
 
+    # Find digits in the string
     found_digits = re.findall("\d+", message_text)
-
     if len(found_digits) < 1:
         Facebook.send_message(message["sender_id"], "I did not understand your choice of task")
         return
@@ -164,8 +164,8 @@ def send_task(task_content, questions, sender_id, task):
         "content_id": task["contentId"]
     }
     Facebook.send_postback(sender_id,
-                           "To cancel this task, click the button. You can also cancel a task by typing 'Cancel'.",
-                           "Cancel task", "cancel_task")
+                           "To skip this task, click the button. You can also skip a task by typing 'Skip'.",
+                           "Skip task", "skip_task")
 
     data_json = json.loads(task_content) if task_content else {}
     question = questions[0]
@@ -197,10 +197,10 @@ def handle_message_given_task(message):
 
     user_state = user_states[message["sender_id"]]
 
-    if message.get("postback") == "cancel_task" or message["text"] == "Cancel":
+    if message.get("postback") == "skip_task" or message["text"] == "Skip":
         user_state["state"] = "idle"
         user_state["data"] = None
-        Facebook.send_message(message["sender_id"], "Task cancelled!")
+        Facebook.send_message(message["sender_id"], "Task skipped!")
         handle_message_idle(message)
         return
 
