@@ -69,9 +69,11 @@ class ReviewPipeline:
         original_question = elaborate_answer['question']['question']
 
         review_question = {
-            'question': 'Is "{answer}" a good answer for the question: "{question}"?'.format(
-                answer=original_answer, question=original_question
-            ),
+            'question': 'The user was asked the following question: \n\n'
+                        '{question}\n\n'
+                        'Do you think the following answer was a correct answer?\n\n'
+                        '{answer}'
+                        .format(answer=original_answer, question=original_question),
             'answerSpecification': {
                 'type': 'option',
                 'options': ['Yes', 'No']
@@ -120,7 +122,7 @@ class ReviewPipeline:
             print(review_question)
             # todo allow a way of storing the original question and answer without this ugly thing.
             # maybe a private data area within the content?
-            res = re.search('\"(.*)\".*\"(.*)\"', review_question['question'])
+            res = re.search('\\n\\n(.*)\\n\\n.*\\n\\n(.*)$', review_question['question'])
             answer = res.group(1)
             question = res.group(2)
             result.append({

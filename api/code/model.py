@@ -18,7 +18,7 @@ class User(BaseModel):
     def as_json(self):
         return {
             'id': self.id,
-            'score': self.score,
+            'score': str(self.score),
             'facebookId': self.facebookId
         }
 
