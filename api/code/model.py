@@ -26,13 +26,13 @@ class User(BaseModel):
 class Task(BaseModel):
     id = PrimaryKeyField()
     description = TextField()
-    userId = ForeignKeyField(User, related_name="tasks_created")
+    user = ForeignKeyField(User, related_name="tasks_created")
 
     def as_json(self):
         return {
             'id': self.id,
             'description': self.description,
-            'userId': self.userId.id
+            'userId': self.user.id
         }
 
 
@@ -41,7 +41,7 @@ class Question(BaseModel):
     index = IntegerField()
     question = TextField()
     answerSpecificationJSON = TextField()
-    taskId = ForeignKeyField(Task)
+    task = ForeignKeyField(Task, related_name='questions')
 
     def as_json(self):
         return {
@@ -49,50 +49,50 @@ class Question(BaseModel):
             'index': self.index,
             'question': self.question,
             'answerSpecificationJSON': json.loads(self.answerSpecificationJSON),
-            'taskId': self.taskId.id
+            'taskId': self.task.id
         }
 
 
 class Content(BaseModel):
     id = PrimaryKeyField()
     dataJSON = TextField(null=True)
-    taskId = ForeignKeyField(Task)
+    task = ForeignKeyField(Task)
 
     def as_json(self):
         return {
             'id': self.id,
             'dataJSON': json.loads(self.dataJSON),
-            'taskId': self.taskId.id
+            'taskId': self.task.id
         }
 
 
 class Location(BaseModel):
-    contentId = ForeignKeyField(Content, primary_key=True, related_name="location")
+    content = ForeignKeyField(Content, primary_key=True, related_name="location")
     longitude = FloatField()
     latitude = FloatField()
 
 
 class Answer(BaseModel):
     answer = TextField()
-    userId = ForeignKeyField(User)
-    contentId = ForeignKeyField(Content)
-    questionId = ForeignKeyField(Question)
+    user = ForeignKeyField(User)
+    content = ForeignKeyField(Content)
+    question = ForeignKeyField(Question)
 
     def as_json(self):
         return {
             'id': self.id,
-            'userId': self.userId.id,
-            'contentId': self.userId.id,
-            'questionId': self.questionId.id
+            'userId': self.user.id,
+            'contentId': self.user.id,
+            'questionId': self.question.id
         }
 
     class Meta:
-        primary_key = CompositeKey('userId', 'contentId', 'questionId')
+        primary_key = CompositeKey('user', 'content', 'question')
 
 
 class CanNotAnswer(BaseModel):
-    userId = ForeignKeyField(User)
-    contentId = ForeignKeyField(Content)
+    user = ForeignKeyField(User)
+    content = ForeignKeyField(Content)
 
     class Meta:
-        primary_key = CompositeKey('userId', 'contentId')
+        primary_key = CompositeKey('user', 'content')
