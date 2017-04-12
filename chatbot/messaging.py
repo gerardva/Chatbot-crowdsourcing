@@ -2,6 +2,7 @@ import json
 import chatbot.api_helper as Api
 import chatbot.facebook_helper as Facebook
 from chatbot.logger import log
+from decimal import Decimal
 
 user_states = {}
 greetings = {"hi", "hey", "hello", "greetings"}
@@ -46,8 +47,9 @@ def handle_message(message):
 
 def handle_message_idle(message):
     sender_id = message["sender_id"]
-    user_id = user_states[sender_id]["user_id"]
-    name = user_states[sender_id]["name"]
+    user_state = user_states[sender_id]
+    user_id = user_state["user_id"]
+    name = user_state["name"]
 
     # Handle giving task
     if message.get("coordinates") or message.get("quick_reply_payload") == "random_task" or \
@@ -71,9 +73,8 @@ def handle_message_idle(message):
             Facebook.send_message(sender_id, "Sorry, something went wrong when retrieving your task")
             return
 
-        user_states[sender_id] = {
-            "state": "given_task_options",
-            "user_id": user_id,
+        user_state["state"] = "given_task_options"
+        user_state["data"] = {
             "tasks": tasks
         }
         log(user_states)
@@ -90,20 +91,13 @@ def handle_message_idle(message):
 
         Facebook.send_message(sender_id, mes, quick_replies)
 
-    # Handle request for balance
-    elif message["text"] == "What is my balance?":
-        user_data = Api.get_user_data(user_id)
-
-        if not user_data:
-            Facebook.send_message(sender_id, "I'm sorry, I could not retrieve your balance. "
-                                             "I'm sure you are doing a wonderful job!")
-            return
-
-        balance = user_data["score"]
-        Facebook.send_message(sender_id, "You have earned €{balance} so far".format(balance=balance))
-
     # Handle initial message
     else:  # str.lower(message["text"]) in greetings:
+        balance = Decimal(-1)
+        user_data = Api.get_user_data(user_id)
+        if user_data:
+            balance = Decimal(user_data["score"])
+
         quick_replies = [{
             "content_type": "location"
         }, {
@@ -116,9 +110,17 @@ def handle_message_idle(message):
             "payload": "list_task"
         }]
 
-        Facebook.send_message(sender_id, "Hey " + name + "! "
-                                         "What do you want to do today? "
-                                         "I can give you a random task or a list of tasks to choose from. "
+        welcome_back_message = ""
+        if balance < 0:
+            pass
+        elif balance == 0:
+            welcome_back_message = "I see you are new here, welcome!"
+        else:
+            welcome_back_message = ("Welcome back! You have earned €{balance} with us so far, good job!"
+                                    .format(balance=balance))
+
+        Facebook.send_message(sender_id, "Hey " + name + "! " + welcome_back_message)
+        Facebook.send_message(sender_id, "I can give you a random task or a list of tasks to choose from. "
                                          "If you send your location I can give you a task which can be done near you.",
                               quick_replies)
 
@@ -137,10 +139,10 @@ def handle_message_given_task_options(message):
             pass
 
     if chosen_task_id == -1:
-        Facebook.send_message(message["sender_id"], "I did not understand your chose of task")
+        Facebook.send_message(message["sender_id"], "I did not understand your choice of task")
         return
 
-    tasks = user_states[message["sender_id"]]["tasks"]
+    tasks = user_states[message["sender_id"]]["data"]["tasks"]
     chosen_task = tasks[chosen_task_id - 1]
     questions = chosen_task["questions"]
     task_content = chosen_task["content"]
@@ -150,9 +152,9 @@ def handle_message_given_task_options(message):
 
 
 def send_task(task_content, questions, sender_id, task):
-    user_states[sender_id] = {
-        "state": "given_task",
-        "user_id": user_states[sender_id]["user_id"],
+    user_state = user_states[sender_id]
+    user_state["state"] = "given_task"
+    user_state["data"] = {
         "task_id": task["taskId"],
         "questions": questions,
         "current_question": 0,
@@ -193,16 +195,14 @@ def handle_message_given_task(message):
     user_state = user_states[message["sender_id"]]
 
     if message.get("postback") == "cancel_task" or message["text"] == "Cancel":
-        user_states[message["sender_id"]] = {
-            "state": "idle",
-            "user_id": user_state["user_id"]
-        }
+        user_state["state"] = "idle"
+        user_state["data"] = None
         Facebook.send_message(message["sender_id"], "Task cancelled!")
         handle_message_idle(message)
         return
 
-    current_question = user_state["current_question"]
-    questions = user_state["questions"]
+    current_question = user_state["data"]["current_question"]
+    questions = user_state["data"]["questions"]
 
     answer_specification = json.loads(questions[current_question]["answerSpecification"])
     answer_type = answer_specification["type"]
@@ -239,7 +239,7 @@ def handle_message_given_task(message):
 
     user_id = user_state["user_id"]
     question_id = questions[current_question]["questionId"]
-    content_id = user_state["content_id"]
+    content_id = user_state["data"]["content_id"]
 
     res = Api.post_answer(answer, user_id, question_id, content_id, current_question == len(questions) - 1)
 
@@ -249,15 +249,13 @@ def handle_message_given_task(message):
 
     if current_question == len(questions) - 1:
         Facebook.send_message(message["sender_id"], "Thank you for your answer, you're done!")
-        user_states[message["sender_id"]] = {
-            "state": "idle",
-            "user_id": user_state["user_id"]
-        }
+        user_state["state"] = "idle"
+        user_state["data"] = None
 
         handle_message_idle(message)
 
     else:
-        user_state["current_question"] = current_question + 1
+        user_state["data"]["current_question"] = current_question + 1
         #Facebook.send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
 
         answer_specification = json.loads(questions[current_question + 1]["answerSpecification"])
@@ -327,7 +325,8 @@ def get_user(sender_id):
         user_states[sender_id] = {
             "state": "idle",
             "user_id": user["userId"],
-            "name": facebook_data["first_name"]
+            "name": facebook_data["first_name"],
+            "data": None
         }
 
     return True
