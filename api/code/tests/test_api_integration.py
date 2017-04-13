@@ -1,12 +1,9 @@
-from decimal import Decimal
-
 from api.code.model import *
 from pipelines.reviewPipeline import *
 import json
 import uuid
 from unittest import TestCase
 
-import unittest
 import requests
 
 # TODO this should be imported form settings
@@ -76,7 +73,8 @@ class ApiIntegrationTest(TestCase):
             'questionRows': [
                 {'question': 'Please take a picture of Delft station.',
                  'answerSpecification': {'type': 'image'}},
-                {'question': 'Please walk to the bike cellar. How many available bike spaces are there, according to the signs?',
+                {'question': 'Please walk to the bike cellar. '
+                             'How many available bike spaces are there, according to the signs?',
                  'answerSpecification': {'type': 'plaintext'}}
             ]
         }))
@@ -110,7 +108,8 @@ class ApiIntegrationTest(TestCase):
         self.questionId = r_as_json['questions'][0]['questionId']
 
     def get_location_based_task(self):
-        r = requests.get(base_api_url + '/worker/' + str(self.userId) + '/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
+        r = requests.get(base_api_url + '/worker/' + str(self.userId) +
+                         '/tasks?order=location&longitude=1.0&latitude=1.0&range=1.0&limit=10')
 
         print('location based task: ' + r.text)
         # r_as_json = json.loads(r.text)[0]
@@ -184,7 +183,7 @@ class ApiIntegrationTest(TestCase):
                 found_task = True
 
         self.assertFalse(found_task,
-                             'found a task (with just one content) that should have been blocked by CanNotAnswer')
+                         'found a task (with just one content) that should have been blocked by CanNotAnswer')
 
     def make_review_pipeline(self):
         r = requests.post(base_api_url + '/worker', json.dumps({
@@ -218,8 +217,6 @@ class ApiIntegrationTest(TestCase):
 
         rp = ReviewPipeline(self.task_id, 2, self.userId)
         review_task_id = rp.create_review_task()
-
-        #print('review_task_id'+ str(review_task_id))
 
         review_contents = Content.select().where(Content.task == review_task_id)
         review_question_id = Question.get(Question.task == review_task_id).id

@@ -17,6 +17,7 @@ stickers = {
     ]
 }
 
+
 def handle_postback_message(messaging_event):
     message = construct_postback_message(messaging_event)
     handle_message(message)
@@ -180,9 +181,6 @@ def send_task(task_content, questions, sender_id, task):
     question = questions[0]
 
     question_text = question["question"]
-    #if data_json.get("reviewQuestion") is not None and data_json.get("reviewAnswer") is not None:
-    #    question_text = question_text.format(question=data_json.get("reviewQuestion"),
-    #                                         answer=data_json.get("reviewAnswer"))
 
     if data_json.get("pictureUrl") is not None:
         Facebook.send_image(sender_id, data_json["pictureUrl"])
@@ -270,7 +268,6 @@ def handle_message_given_task(message):
 
     else:
         user_state["data"]["current_question"] = current_question + 1
-        #Facebook.send_message(message["sender_id"], "Thank you for your answer, here comes the next question!")
 
         answer_specification = json.loads(questions[current_question + 1]["answerSpecification"])
         answer_type = answer_specification["type"]

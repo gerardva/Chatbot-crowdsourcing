@@ -154,7 +154,8 @@ class WorkerResource:
 
             resp.body = json.dumps({'userId': user.id})
         else:
-            resp.body = json.dumps({'error': 'no facebook id is provided, other platforms are not supported at this time.'})
+            resp.body = json.dumps({'error': 'No Facebook ID provided. '
+                                             'Other platforms are not supported at this time.'})
 
 
 class WorkerUserIdResource(object):
@@ -165,11 +166,6 @@ class WorkerUserIdResource(object):
             'score': str(user.score)
         }
         resp.body = json.dumps(response)
-
-
-    # def on_get(self, req, resp):
-    #     user = User.create()
-    #     resp.body = json.dumps({'userId': user.id})
 
 
 class RequesterTasksResource:
@@ -225,7 +221,7 @@ def add_location(content_id, location_as_json):
 
 class RequesterQuestionResource:
     def on_get(self, req, resp, question_id):
-        question = Question.get(Question.id==question_id)
+        question = Question.get(Question.id == question_id)
         resp.body = json.dumps(question.as_json())
 
 

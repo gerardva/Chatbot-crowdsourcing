@@ -8,6 +8,7 @@ import re
 WAITRESS_PORT = 5000
 base_api_url = 'http://localhost:'+str(WAITRESS_PORT)
 
+
 class ReviewPipeline:
     def __init__(self, task_id, amount_of_reviews, requester_user_id, review_task_id=None):
         self.task_id = task_id
@@ -15,15 +16,14 @@ class ReviewPipeline:
         self.user_id = requester_user_id
         self.review_task_id = review_task_id
 
-
     def create_review_task(self):
-        r = requests.get(base_api_url+'/requester/tasks/'+ str(self.task_id) + '/answers?elaborate=true')
+        r = requests.get(base_api_url+'/requester/tasks/' + str(self.task_id) + '/answers?elaborate=true')
         r_as_json = r.json()
 
         print(r.text)
         print(json.dumps(r_as_json[0]))
 
-        # todo implement exclude userids, so a review cant be done by the person who answered the question
+        # todo implement exclude user ids, so a review cant be done by the person who answered the question
         review_task = {
             'userId': self.user_id,
             'description': self.review_task_description_maker(),
@@ -69,11 +69,11 @@ class ReviewPipeline:
         original_question = elaborate_answer['question']['question']
 
         review_question = {
-            'question': 'The user was asked the following question: \n\n'
-                        '{question}\n\n'
-                        'Do you think the following answer was a correct answer?\n\n'
-                        '{answer}'
-                        .format(answer=original_answer, question=original_question),
+            'question': ('The user was asked the following question: \n\n'
+                         '{question}\n\n'
+                         'Do you think the following answer was a correct answer?\n\n'
+                         '{answer}'
+                         .format(answer=original_answer, question=original_question)),
             'answerSpecification': {
                 'type': 'option',
                 'options': ['Yes', 'No']
@@ -85,7 +85,7 @@ class ReviewPipeline:
     def get_answers(self):
         r = requests.get(base_api_url + '/requester/tasks/' + str(self.review_task_id) + '/answers')
 
-        print('get_ansers: '+r.text)
+        print('get_answers: '+r.text)
         r_as_json = json.loads(r.text)
 
         grouped_answers = {}
@@ -120,7 +120,7 @@ class ReviewPipeline:
             review_question = json.loads(r.text)
 
             print(review_question)
-            # todo allow a way of storing the original question and answer without this ugly thing.
+            # TODO allow a way of storing the original question and answer without this ugly thing.
             # maybe a private data area within the content?
             res = re.search('\\n\\n(.*)\\n\\n.*\\n\\n(.*)$', review_question['question'])
             answer = res.group(1)
