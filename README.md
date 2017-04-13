@@ -22,6 +22,11 @@ The project directories and files are structured in the following tree:
     - `local_test.py` tests communication with facebook API independently of the code in `api`
     - `logger.py` wraps heroku logging functionality
     - `messaging.py` logic to handle the chatbot interaction flow by reading user messages and replying according to current chatbot state
+- `pipelines`
+    - `pipeline_1.py` pipeline for Albert Heijn Twitter WebCare evaluation task (Type 1: global content)
+    - `pipeline_2.py` pipeline for Albert Heijn ground plan evaluation task (Type 2: local content)
+    - `pipeline_3.py` pipeline for Albert Heijn store stocking evaluation task (Type 3: content generation)
+    - `reviewPipeline.py` pipeline for generation of review tasks
 
 ## Project set up
 
