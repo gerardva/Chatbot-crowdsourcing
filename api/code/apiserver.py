@@ -1,12 +1,11 @@
 from decimal import Decimal
 
-from api.code.apifuncs.api import QuoteResource
 from api.code.model import *
 
 REWARD = '0.05'
 
+
 def add_api_routes(app):
-    app.add_route('/quote', QuoteResource())
     app.add_route('/worker/{user_id}/tasks', WorkerTasksResource())
     app.add_route('/worker/{user_id}/answers', WorkerAnswersResource())
     app.add_route('/worker', WorkerResource())
@@ -222,6 +221,7 @@ def add_location(content_id, location_as_json):
                                latitude=location_as_json['latitude'],
                                longitude=location_as_json['longitude'])
     location.save()
+
 
 class RequesterQuestionResource:
     def on_get(self, req, resp, question_id):
