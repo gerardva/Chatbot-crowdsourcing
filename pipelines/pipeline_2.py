@@ -8,12 +8,11 @@ def main():
 
     print('returned user json: ' + r.text)
     r_as_json = json.loads(r.text)
-    userId = r_as_json['userId']
-
+    user_id = r_as_json['userId']
 
     r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
-        "userId": userId,
-        "description": "Assess ground plan clarity",
+        "userId": user_id,
+        "description": "Assess floor plan clarity",
         "content": [
             {"data": {"pictureUrl": "http://foodretaildesign.nl/wp-content/uploads/2016/11/plattegrond_AH_XL_Purmerend.jpg"}},
             {"data": {"pictureUrl": "http://www.ah-ouddorp.nl/website/wp-content/uploads/2014/07/Plattegrond-AH-Ouddorp.jpg"}},
@@ -24,9 +23,10 @@ def main():
         ],
         "questionRows": [
             {
-                "question": "From this ground plan, where do you think you can find the bananas? Enter the aisle number/description or 'I don't know' if you don't know.",
+                "question": "From this floor plan, where do you think you could find the bananas? "
+                            "Enter the aisle number or description, or 'I don't know' if you don't know.",
                 "answerSpecification": {"type": "plaintext"}
-			},
+            },
             {
                 "question": "What about the eggs?",
                 "answerSpecification": {"type": "plaintext"}
@@ -42,11 +42,10 @@ def main():
             {
                 "question": "Do you think this ground plan gave a clear overview of the store?",
                 "answerSpecification": {"type": "option",
-                             "options": ["Yes", "No"]}
+                                        "options": ["Yes", "No"]}
             }
         ]
     }))
-
 
     print(str(r.status_code))
 

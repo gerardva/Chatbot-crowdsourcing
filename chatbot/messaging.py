@@ -66,8 +66,9 @@ def handle_message_idle(message):
         coordinates = message.get("coordinates", {})
         task = Api.get_random_task(user_id, coordinates.get("long"), coordinates.get("lat"))
         if not task:
-            Facebook.send_message(sender_id, "Unfortunately, I could not find a task for you. This most likely means "
-                                  "that there are no available tasks at the moment. Be sure to check back later!")
+            Facebook.send_message(sender_id, "Unfortunately, I could not find a task for you. "
+                                             "The most likely reason for this is that there are no available tasks "
+                                             "at the moment. Be sure to check back later!")
             return
 
         questions = task["questions"]
@@ -221,14 +222,14 @@ def handle_message_given_task(message):
     answer = None
     if answer_type == "plaintext":
         if not message.get("text"):
-            Facebook.send_message(message["sender_id"], "I was expecting text as an answer to this question..")
+            Facebook.send_message(message["sender_id"], "I was expecting text as the answer to this question.")
             return
 
         answer = message["text"]
 
     elif answer_type == "image":
         if not message.get("image"):
-            Facebook.send_message(message["sender_id"], "I was expecting an image as an answer to this question..")
+            Facebook.send_message(message["sender_id"], "I was expecting an image as the answer to this question.")
             return
 
         answer = message["image"]
@@ -240,7 +241,7 @@ def handle_message_given_task(message):
             if message["text"] not in answer_options:
                 quick_replies = construct_options_quick_replies(answer_options)
                 Facebook.send_message(message["sender_id"],
-                                      "I was expecting one of the options as an answer to this question..",
+                                      "I was expecting one of the options as the answer to this question.",
                                       quick_replies)
                 return
 
