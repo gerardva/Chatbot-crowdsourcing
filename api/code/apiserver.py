@@ -109,7 +109,7 @@ class WorkerTasksResource:
 
         # get a content for each task
         # we join it with Task to prevent N+1 queries to get the associated task later
-        contents = Content.select(Content, Task).join(Task).where(Content.id << subquery)
+        contents = Content.select(Content, Task).join(Task).where(Content.id << subquery).order_by(fn.Rand())
 
         if limit:
             try:

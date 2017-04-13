@@ -45,13 +45,15 @@ def main():
         #f.truncate()
         r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
             'userId': 2,
-            'description': 'Assess twitter webcare',
+            'description': 'Assess Twitter webcare',
             'content': tweets,
             'questionRows': [
-                {'question': 'Does the original tweet contain a complaint, highlight an issue or something else (if so, elaborate)?',
-                 'answerSpecification': {'type': 'plaintext'}},
-                {'question': 'Do you think this webcare tweet has helped the user with their issue? Type ‘n/a’ if the answer to the previous question was no.',
-                 'answerSpecification': {'type': 'plaintext'}},
+                {'question': 'Does the original tweet contain a complaint/issue, raise a question or something else?',
+                 'answerSpecification': {"type": "option",
+                                         "options": ["Complaint/issue", "Question", "Other"]}},
+                {'question': 'Do you think this webcare tweet has helped the user with their issue?',
+                 'answerSpecification': {"type": "option",
+                                         "options": ["Yes", "No"]}},
                 {'question': 'Do you have any further comments about this webcare tweet?',
                  'answerSpecification': {'type': 'plaintext'}}
             ]
