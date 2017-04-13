@@ -16,15 +16,15 @@ The project directories and files are structured in the following tree:
     - `model.py` datamodel used by both API's
     - `tests` integration tests for both API's
 - `chatbot`
-    - `api_helper` helper methods to call the worker API
+    - `api_helper.py` helper methods to call the worker API
     - `chatbot.py` entry point of chatbot, uses messaging and logger functionality
-    - `facebook_helper` helper methods to call facebook API
-    - `local_test.py` tests communication with facebook API independently of the code in `api`
-    - `logger.py` wraps heroku logging functionality
+    - `facebook_helper.py` helper methods to call Facebook API and Facebook-specific functionality
+    - `local_test.py` tests communication with chatbot without having to use the Facebook interface
+    - `logger.py` wraps (heroku) logging functionality
     - `messaging.py` logic to handle the chatbot interaction flow by reading user messages and replying according to current chatbot state
 - `pipelines`
     - `pipeline_1.py` pipeline for Albert Heijn Twitter WebCare evaluation task (Type 1: global content)
-    - `pipeline_2.py` pipeline for Albert Heijn ground plan evaluation task (Type 2: local content)
+    - `pipeline_2.py` pipeline for Albert Heijn floor plan evaluation task (Type 2: local content)
     - `pipeline_3.py` pipeline for Albert Heijn store stocking evaluation task (Type 3: content generation)
     - `reviewPipeline.py` pipeline for generation of review tasks
 
@@ -40,13 +40,13 @@ To run the chatbot (on Windows) execute the following steps:
 - `pip install virtualenvwrapper-win` to install the virtualenv stuff we are going to use. For Unix you need to install `virtualenvwrapper`
 - `mkvirtualenv chatbot` to enter our virtual environment. It doesn't matter how you call it, but it's useful to remember how you call it.
 - `pip install -r requirements.txt` to locally install project dependencies in the virtual environment
-- `heroku git:remote -a fathomless-cove-38602` to add the Heroku app to the local git to push the code to. I've already added you to the Heroku app and set it up so it works.
 
 If you run a Unix machine I assume you know how to adapt the above instructions to your own machine.
 
 ### Useful for development
 
-- Execute `workon chatbot` to re-enter the virtual environment if you left it for some reason (although I cannot imagine spending your time other than on this course naturally).
+- `heroku git:remote -a fathomless-cove-38602` adds the Heroku app to the local git to push the code to. You need to be added to the Heroku app for this to work.
+- Execute `workon chatbot` to re-enter the virtual environment if you come back to develop.
 - Execute `git push heroku master` to deploy the chatbot to Heroku. In order to push a branch different than master to Heroku, execute `git push heroku your-branch-name:master`.
 - You can run the chatbot locally with `heroku local`. This will allow you to run the application locally, with the heroku database. If you have MySQL installed you can also run the app with your local database. In order to do this you need to enter your database settings in `api/config/settings.json`, and run the server app with `python ./setup.py`.
 
