@@ -1,6 +1,7 @@
 import requests
 import json
 
+
 def main():
     r = requests.post('http://localhost:5000/worker/', data=json.dumps({
         'facebookId': 'this is totally a legit facebook id'
@@ -8,11 +9,10 @@ def main():
 
     print('returned user json: ' + r.text)
     r_as_json = json.loads(r.text)
-    userId = r_as_json['userId']
-
+    user_id = r_as_json['userId']
 
     r = requests.post('http://localhost:5000/requester/tasks', data=json.dumps({
-        "userId": userId,
+        "userId": user_id,
         "description": "Take a picture of a specific Albert Heijn shelf",
         "content": [
             {'location': {'longitude': 4.3731616,
@@ -39,7 +39,6 @@ def main():
             }
         ]
     }))
-
 
     print(str(r.status_code))
 

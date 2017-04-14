@@ -8,6 +8,7 @@ from chatbot.chatbot import add_chatbot_routes
 
 WAITRESS_PORT = '5000'
 
+
 class PeeweeConnectionMiddleware(object):
     def process_request(self, req, resp):
         mysql_db.connect()
