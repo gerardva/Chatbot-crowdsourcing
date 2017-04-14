@@ -4,6 +4,51 @@ import json
 from chatbot.logger import log
 
 
+def construct_postback_message(messaging_event):
+    message = {}
+
+    message["sender_id"] = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
+    message["text"] = ""
+    message["postback"] = messaging_event["postback"].get("payload", "")
+
+    return message
+
+
+def construct_message(messaging_event):
+    message = {}
+
+    message["sender_id"] = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
+
+    message["text"] = messaging_event.get("message").get("text", "")
+
+    quick_reply = messaging_event["message"].get("quick_reply")
+    message["quick_reply_payload"] = quick_reply["payload"] if quick_reply else None
+
+    attachments = messaging_event["message"].get("attachments")
+    if attachments is not None:
+        attachment = attachments[0]  # Pick first attachment, discard the rest
+        attachment_type = attachment["type"]
+        if attachment_type == "location":
+            message["coordinates"] = attachment["payload"]["coordinates"]
+        if attachment_type == "image":
+            message["image"] = attachment["payload"]["url"]
+
+    return message
+
+
+def construct_options_quick_replies(options):
+    quick_replies = []
+    for option in options:
+        quick_reply = {
+            "content_type": "text",
+            "title": option,
+            "payload": option
+        }
+        quick_replies.append(quick_reply)
+
+    return quick_replies
+
+
 def send_message(recipient_id, message_text, quick_replies=None):
     log("sending message to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
 

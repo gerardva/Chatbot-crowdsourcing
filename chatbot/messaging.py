@@ -19,12 +19,12 @@ stickers = {
 
 
 def handle_postback_message(messaging_event):
-    message = construct_postback_message(messaging_event)
+    message = Facebook.construct_postback_message(messaging_event)
     handle_message(message)
 
 
 def handle_text_message(messaging_event):
-    message = construct_message(messaging_event)
+    message = Facebook.construct_message(messaging_event)
     handle_message(message)
 
 
@@ -192,7 +192,7 @@ def send_task(task_content, questions, sender_id, task):
     quick_replies = None
     answer_specification = json.loads(question["answerSpecification"])
     if answer_specification["type"] == "option":
-        quick_replies = construct_options_quick_replies(answer_specification["options"])
+        quick_replies = Facebook.construct_options_quick_replies(answer_specification["options"])
 
     Facebook.send_message(sender_id, question_text, quick_replies)
 
@@ -237,7 +237,7 @@ def handle_message_given_task(message):
             # Check if answer matches any of the answer_options
             answer_options = answer_specification["options"]
             if message["text"] not in answer_options:
-                quick_replies = construct_options_quick_replies(answer_options)
+                quick_replies = Facebook.construct_options_quick_replies(answer_options)
                 Facebook.send_message(message["sender_id"],
                                       "I was expecting one of the options as the answer to this question.",
                                       quick_replies)
@@ -273,54 +273,9 @@ def handle_message_given_task(message):
         answer_type = answer_specification["type"]
         quick_replies = None
         if answer_type == "option":
-            quick_replies = construct_options_quick_replies(answer_specification["options"])
+            quick_replies = Facebook.construct_options_quick_replies(answer_specification["options"])
 
         Facebook.send_message(message["sender_id"], questions[current_question + 1]["question"], quick_replies)
-
-
-def construct_postback_message(messaging_event):
-    message = {}
-
-    message["sender_id"] = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
-    message["text"] = ""
-    message["postback"] = messaging_event["postback"].get("payload", "")
-
-    return message
-
-
-def construct_message(messaging_event):
-    message = {}
-
-    message["sender_id"] = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
-
-    message["text"] = messaging_event.get("message").get("text", "")
-
-    quick_reply = messaging_event["message"].get("quick_reply")
-    message["quick_reply_payload"] = quick_reply["payload"] if quick_reply else None
-
-    attachments = messaging_event["message"].get("attachments")
-    if attachments is not None:
-        attachment = attachments[0]  # Pick first attachment, discard the rest
-        attachment_type = attachment["type"]
-        if attachment_type == "location":
-            message["coordinates"] = attachment["payload"]["coordinates"]
-        if attachment_type == "image":
-            message["image"] = attachment["payload"]["url"]
-
-    return message
-
-
-def construct_options_quick_replies(options):
-    quick_replies = []
-    for option in options:
-        quick_reply = {
-            "content_type": "text",
-            "title": option,
-            "payload": option
-        }
-        quick_replies.append(quick_reply)
-
-    return quick_replies
 
 
 def get_user(sender_id):
