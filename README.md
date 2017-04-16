@@ -10,6 +10,7 @@ Go to [the Facebook page](https://www.facebook.com/Microwork-Chatbot-18490852820
 
 The project directories and files are structured in the following tree:
 
+- `setup.py` runs worker API, requester API and chatbot
 - `api`
     - `apiserver.py` webserver that contains logic for the requester and worker API
     - `database.py` initializes database configuration
